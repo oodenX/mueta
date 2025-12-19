@@ -7,7 +7,7 @@ dist/
 data/
 .vscode/
 .idea/
-*/logs
+logs/
 docs/
 *.egg-info/
 *.pyc
