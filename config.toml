@@ -1,0 +1,6 @@
+[default]
+audio_save_dir =
+lyrics_save_dir =
+
+[acoustid]
+acoustid_api_key =
