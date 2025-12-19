@@ -7,3 +7,12 @@ dist/
 data/
 .vscode/
 .idea/
+*/logs
+docs/
+*.egg-info/
+*.pyc
+.mypy_cache/
+.pytest_cache/
+coverage.xml
+htmlcov/
+.tox/
