@@ -1,6 +1,6 @@
 [default]
-audio_save_dir =
-lyrics_save_dir =
+audio_save_dir = "~/.mueta/audio"
+lyrics_save_dir = "~/mueta/lyrics"
 
 [acoustid]
-acoustid_api_key =
+acoustid_api_key = ""
