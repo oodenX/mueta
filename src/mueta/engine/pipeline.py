@@ -44,6 +44,15 @@ class MetaPipeline:
         )
 
         try:
+            # Step 0: Validate audio file first (quick check)
+            is_valid, validation_error = self.tagger.validate_audio_file(file_path)
+            if not is_valid:
+                result.error = validation_error
+                logger.warning(f"Invalid audio file: {file_path.name} - {validation_error}")
+                # Still move file even if invalid (to avoid reprocessing)
+                self._handle_file_placement(file_path, options)
+                return result
+
             # Step 1: Read existing metadata
             existing_meta = self.tagger.read_metadata(file_path)
 
