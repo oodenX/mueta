@@ -74,6 +74,13 @@ def init():
         console.print("[red]❌ AcoustID API key is required![/red]")
         raise typer.Exit(1)
 
+    # Genius API key
+    console.print("\n[bold]🔑 Genius API Key (Optional)[/bold]")
+    console.print(
+        "  [dim]Get your Client Access Token at: [link=https://genius.com/api-clients]https://genius.com/api-clients[/link][/dim]"
+    )
+    genius_key = Prompt.ask("  Enter your Genius API Token (leave empty to skip)")
+
     # Save configuration
     config_path = Settings._get_config_path()
     config_path.parent.mkdir(parents=True, exist_ok=True)
@@ -84,6 +91,9 @@ lyrics_save_dir = "{lyrics_dir}"
 
 [acoustid]
 acoustid_api_key = "{acoustid_key}"
+
+[genius]
+genius_api_key = "{genius_key or ''}"
 """
 
     with open(config_path, "w", encoding="utf-8") as f:

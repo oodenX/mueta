@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     audio_save_dir : str
     lyrics_save_dir : str
     acoustid_api_key: str
+    genius_api_key: str | None = None
 
     @staticmethod
     def _get_config_path() -> Path:
@@ -38,6 +39,8 @@ class Settings(BaseSettings):
                     settings_dict.update(config_data["default"])
                 if "acoustid" in config_data:
                     settings_dict.update(config_data["acoustid"])
+                if "genius" in config_data:
+                    settings_dict.update(config_data["genius"])
 
                 # Expand paths with ~ to absolute paths
                 if "audio_save_dir" in settings_dict:
