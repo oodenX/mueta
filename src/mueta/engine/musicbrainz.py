@@ -45,7 +45,7 @@ class MusicBrainzService:
 
         url = f"{self.BASE_URL}/recording/{mbid}"
         params = {
-            "inc": "artists+releases+tags+isrcs",
+            "inc": "artists+releases+tags+isrcs+artist-rels+work-rels",
             "fmt": "json",
         }
 
@@ -110,6 +110,17 @@ class MusicBrainzService:
             if tags:
                 metadata.genre = tags[0]["name"]
 
+        # Get credits from artist relations
+        if "relations" in recording:
+            self._extract_credits(metadata, recording["relations"])
+
+        # Get work MBID from work relations
+        if "relations" in recording:
+            for rel in recording["relations"]:
+                if rel.get("type") == "performance" and "work" in rel:
+                    metadata.work_mbid = rel["work"].get("id")
+                    break
+
         logger.debug(f"Fetched metadata: {metadata.title} - {metadata.artist}")
         return metadata
 
@@ -136,6 +147,58 @@ class MusicBrainzService:
         except httpx.HTTPError as e:
             logger.warning(f"Failed to fetch release details: {e}")
             return None
+
+    def _extract_credits(self, metadata: AudioMetadata, relations: list) -> None:
+        """
+        Extract credits (composer, lyricist, producer, etc.) from artist relations.
+
+        Args:
+            metadata: AudioMetadata to populate.
+            relations: List of relation dictionaries from MusicBrainz.
+        """
+        # Mapping of MusicBrainz relation types to metadata fields
+        credit_mapping = {
+            "composer": "composer",
+            "lyricist": "lyricist",
+            "producer": "producer",
+            "arranger": "arranger",
+            "mix": "mixer",
+            "conductor": "conductor",
+            "performer": "performer",
+            "writer": "writer",
+            "vocal": "performer",  # Map vocal to performer as fallback
+        }
+
+        credits_found: dict[str, list[str]] = {}
+
+        for rel in relations:
+            rel_type = rel.get("type", "").lower()
+            if rel_type in credit_mapping and "artist" in rel:
+                artist_name = rel["artist"].get("name")
+                if artist_name:
+                    field = credit_mapping[rel_type]
+                    if field not in credits_found:
+                        credits_found[field] = []
+                    if artist_name not in credits_found[field]:
+                        credits_found[field].append(artist_name)
+
+        # Populate metadata fields (join multiple artists with ", ")
+        if "composer" in credits_found:
+            metadata.composer = ", ".join(credits_found["composer"])
+        if "lyricist" in credits_found:
+            metadata.lyricist = ", ".join(credits_found["lyricist"])
+        if "producer" in credits_found:
+            metadata.producer = ", ".join(credits_found["producer"])
+        if "arranger" in credits_found:
+            metadata.arranger = ", ".join(credits_found["arranger"])
+        if "mixer" in credits_found:
+            metadata.mixer = ", ".join(credits_found["mixer"])
+        if "conductor" in credits_found:
+            metadata.conductor = ", ".join(credits_found["conductor"])
+        if "performer" in credits_found:
+            metadata.performer = ", ".join(credits_found["performer"])
+        if "writer" in credits_found:
+            metadata.writer = ", ".join(credits_found["writer"])
 
     def _select_best_release(self, releases: list) -> dict:
         """

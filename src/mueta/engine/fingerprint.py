@@ -41,24 +41,37 @@ class FingerprintService:
             file_path: Path to the audio file.
 
         Returns:
-            List of matching results with recordings.
+            List of matching results with recordings and acoustid_id.
         """
         logger.info(f"Looking up AcoustID for: {file_path.name}")
 
         results = []
         try:
-            for score, recording_id, title, artist in acoustid.match(
-                self.api_key, str(file_path)
-            ):
-                results.append(
-                    {
-                        "score": score,
-                        "recording_id": recording_id,
-                        "title": title,
-                        "artist": artist,
-                    }
-                )
-                logger.debug(f"Match: {title} - {artist} (score: {score:.2f})")
+            # Use lower-level API to get acoustid_id
+            duration, fingerprint = self.get_fingerprint(file_path)
+            response = acoustid.lookup(self.api_key, fingerprint, duration)
+
+            if response and "results" in response:
+                for result in response["results"]:
+                    acoustid_id = result.get("id")
+                    score = result.get("score", 0)
+
+                    if "recordings" in result:
+                        for recording in result["recordings"]:
+                            recording_id = recording.get("id")
+                            title = recording.get("title", "")
+                            artists = recording.get("artists", [])
+                            artist = artists[0].get("name", "") if artists else ""
+
+                            results.append({
+                                "score": score,
+                                "recording_id": recording_id,
+                                "title": title,
+                                "artist": artist,
+                                "acoustid_id": acoustid_id,
+                            })
+                            logger.debug(f"Match: {title} - {artist} (score: {score:.2f})")
+
         except acoustid.NoBackendError:
             logger.error("Chromaprint library not found. Please install fpcalc.")
             raise

@@ -155,7 +155,16 @@ def view_meta(
         ("original_year", "Original Year"),
         ("original_release_date", "Original Release Date"),
         ("genre", "Genre"),
+        # Credits
         ("composer", "Composer"),
+        ("lyricist", "Lyricist"),
+        ("producer", "Producer"),
+        ("arranger", "Arranger"),
+        ("mixer", "Mixer"),
+        ("conductor", "Conductor"),
+        ("performer", "Performer"),
+        ("writer", "Writer"),
+        # Release info
         ("label", "Label"),
         ("catalog_number", "Catalog Number"),
         ("barcode", "Barcode"),
@@ -166,13 +175,19 @@ def view_meta(
         ("release_status", "Release Status"),
         ("release_country", "Release Country"),
         ("script", "Script"),
+        # Additional
+        ("language", "Language"),
+        ("copyright", "Copyright"),
         ("duration", "Duration (s)"),
         ("bpm", "BPM"),
+        # MusicBrainz IDs
         ("mbid", "Recording MBID"),
         ("release_mbid", "Release MBID"),
         ("release_group_mbid", "Release Group MBID"),
         ("artist_mbid", "Artist MBID"),
         ("release_artist_mbids", "Release Artist MBIDs"),
+        ("work_mbid", "Work MBID"),
+        ("acoustid_id", "AcoustID"),
     ]
 
     meta_dict = meta.model_dump()

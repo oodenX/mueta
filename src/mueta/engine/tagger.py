@@ -112,7 +112,16 @@ class TaggerService:
             year=get_int("date"),
             original_release_date=get_first("originaldate"),
             genre=get_first("genre"),
+            # Credits
             composer=get_first("composer"),
+            lyricist=get_first("lyricist"),
+            producer=get_first("producer"),
+            arranger=get_first("arranger"),
+            mixer=get_first("mixer"),
+            conductor=get_first("conductor"),
+            performer=get_first("performer"),
+            writer=get_first("writer"),
+            # Release info
             isrc=get_first("isrc"),
             barcode=get_first("barcode"),
             asin=get_first("asin"),
@@ -123,11 +132,17 @@ class TaggerService:
             release_status=get_first("releasestatus"),
             release_country=get_first("releasecountry"),
             script=get_first("script"),
+            # Additional info
+            language=get_first("language"),
+            copyright=get_first("copyright"),
+            # MusicBrainz IDs
             mbid=get_first("musicbrainz_recordingid"),
             release_mbid=get_first("musicbrainz_albumid"),
             release_group_mbid=get_first("musicbrainz_releasegroupid"),
             artist_mbid=get_first("musicbrainz_artistid"),
             release_artist_mbids=get_list("musicbrainz_albumartistid"),
+            work_mbid=get_first("musicbrainz_workid"),
+            acoustid_id=get_first("acoustid_id"),
             duration=audio.info.length if audio.info else None,
         )
 
@@ -158,7 +173,16 @@ class TaggerService:
             "album": meta.album,
             "albumartist": meta.album_artist,
             "genre": meta.genre,
+            # Credits
             "composer": meta.composer,
+            "lyricist": meta.lyricist,
+            "producer": meta.producer,
+            "arranger": meta.arranger,
+            "mixer": meta.mixer,
+            "conductor": meta.conductor,
+            "performer": meta.performer,
+            "writer": meta.writer,
+            # Release info
             "isrc": meta.isrc,
             "barcode": meta.barcode,
             "asin": meta.asin,
@@ -169,6 +193,9 @@ class TaggerService:
             "releasestatus": meta.release_status,
             "releasecountry": meta.release_country,
             "script": meta.script,
+            # Additional
+            "language": meta.language,
+            "copyright": meta.copyright,
             # Sort orders
             "artistsort": meta.artist_sort_order,
             "albumartistsort": meta.album_artist_sort_order,
@@ -177,6 +204,8 @@ class TaggerService:
             "musicbrainz_albumid": meta.release_mbid,
             "musicbrainz_releasegroupid": meta.release_group_mbid,
             "musicbrainz_artistid": meta.artist_mbid,
+            "musicbrainz_workid": meta.work_mbid,
+            "acoustid_id": meta.acoustid_id,
         }
 
         for key, value in tag_mapping.items():

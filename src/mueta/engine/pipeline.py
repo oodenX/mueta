@@ -88,6 +88,10 @@ class MetaPipeline:
             # Step 3: Get full metadata from MusicBrainz
             metadata = self.musicbrainz.get_recording(recording_id)
 
+            # Set acoustid_id if we got it from AcoustID lookup
+            if match and match.get("acoustid_id"):
+                metadata.acoustid_id = match["acoustid_id"]
+
             # Step 4: Get and embed cover art (if enabled)
             if options.embed_cover and metadata.release_mbid:
                 cover_url = self.musicbrainz.get_cover_url(metadata.release_mbid)

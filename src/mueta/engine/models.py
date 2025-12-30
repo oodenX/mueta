@@ -37,6 +37,15 @@ class AudioMetadata(BaseModel):
     composer: str | None = None
     lyricist: str | None = None
     producer: str | None = None
+    arranger: str | None = None
+    mixer: str | None = None
+    conductor: str | None = None
+    performer: str | None = None
+    writer: str | None = None  # Songwriter
+
+    # Additional info
+    language: str | None = None
+    copyright: str | None = None
 
     # Release info
     label: str | None = None  # Record label
@@ -60,6 +69,8 @@ class AudioMetadata(BaseModel):
     release_group_mbid: str | None = None  # MusicBrainz Release Group ID
     artist_mbid: str | None = None  # MusicBrainz Artist ID
     release_artist_mbids: list[str] | None = None  # MusicBrainz Release Artist IDs
+    work_mbid: str | None = None  # MusicBrainz Work ID
+    acoustid_id: str | None = None  # AcoustID fingerprint ID
 
     # Cover and lyrics
     cover_url: str | None = None
