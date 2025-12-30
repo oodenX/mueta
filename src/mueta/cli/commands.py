@@ -9,8 +9,25 @@ from rich.panel import Panel
 from rich import print as rprint
 from mueta.cli.completion import Completer
 
+__version__ = "1.0.0"
+
+def version_callback(value: bool):
+    if value:
+        rprint(f"[bold cyan]Mueta[/bold cyan] version [green]{__version__}[/green]")
+        raise typer.Exit()
+
 app = typer.Typer(rich_markup_mode="rich", help="Mueta CLI Application")
 console = Console()
+
+@app.callback()
+def main(
+    version: Annotated[
+        bool,
+        typer.Option("--version", "-v", callback=version_callback, is_eager=True, help="Show version and exit")
+    ] = False,
+):
+    """Mueta - Music metadata auto getter"""
+    pass
 
 
 @app.command(rich_help_panel="General Commands")
@@ -129,9 +146,9 @@ def view_meta(
         ("album", "Album"),
         ("album_artist", "Album Artist"),
         ("album_artist_sort_order", "Album Artist Sort Order"),
-        ("track_number", "Track #"),
+        ("track_number", "Track Number"),
         ("total_tracks", "Total Tracks"),
-        ("disc_number", "Disc #"),
+        ("disc_number", "Disc Number"),
         ("total_discs", "Total Discs"),
         ("year", "Year"),
         ("date", "Date"),
@@ -140,14 +157,14 @@ def view_meta(
         ("genre", "Genre"),
         ("composer", "Composer"),
         ("label", "Label"),
-        ("catalog_number", "Catalog #"),
+        ("catalog_number", "Catalog Number"),
         ("barcode", "Barcode"),
         ("asin", "ASIN"),
         ("isrc", "ISRC"),
         ("media", "Media"),
         ("release_type", "Release Type"),
-        ("release_status", "Status"),
-        ("release_country", "Country"),
+        ("release_status", "Release Status"),
+        ("release_country", "Release Country"),
         ("script", "Script"),
         ("duration", "Duration (s)"),
         ("bpm", "BPM"),
@@ -200,6 +217,7 @@ def get_meta(
     from rich.progress import Progress, BarColumn, TaskProgressColumn, TimeRemainingColumn, TextColumn, SpinnerColumn
     from concurrent.futures import ThreadPoolExecutor, as_completed
     from threading import Lock
+    from mueta.engine.tagger import TaggerService
 
     options = ProcessOptions(
         download_lyrics=lyric,
@@ -210,15 +228,24 @@ def get_meta(
 
     # Filter out non-existent files
     valid_files = []
+    tagger = TaggerService()
+
+    console.print("[cyan]🔍 Validating audio files...[/cyan]")
     for file in files:
         file_path = Path(file)
-        if file_path.exists():
+        if not file_path.exists():
+            console.print(f"[yellow]⚠️ Skipping (not found): {file}[/yellow]")
+            continue
+
+        # Quick validation before processing
+        is_valid, error = tagger.validate_audio_file(file_path)
+        if is_valid:
             valid_files.append(file_path)
         else:
-            console.print(f"[yellow]⚠️ Skipping (not found): {file}[/yellow]")
+            console.print(f"[yellow]⚠️ Skipping ({error}): {file_path.name}[/yellow]")
 
     if not valid_files:
-        console.print("[red]❌ No valid files to process[/red]")
+        console.print("[red]❌ No valid audio files to process[/red]")
         raise typer.Exit(1)
 
     console.print(f"[cyan]📁 Processing {len(valid_files)} audio files with {workers} workers[/cyan]\n")
