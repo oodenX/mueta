@@ -9,6 +9,7 @@ data/
 .vscode/
 .idea/
 logs/
+test_audio/
 
 *.egg-info/
 *.pyc
@@ -17,3 +18,4 @@ logs/
 coverage.xml
 htmlcov/
 .tox/
+test_output/
