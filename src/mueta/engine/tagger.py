@@ -17,6 +17,49 @@ from mueta.engine.models import AudioMetadata
 class TaggerService:
     """Service for reading and writing audio file tags."""
 
+    # Supported audio formats
+    SUPPORTED_EXTENSIONS = {'.mp3', '.flac', '.m4a', '.ogg', '.opus', '.wav', '.aac', '.wma'}
+
+    def validate_audio_file(self, file_path: Path) -> tuple[bool, str]:
+        """
+        Validate if a file is a valid audio file that can be processed.
+
+        Args:
+            file_path: Path to the audio file.
+
+        Returns:
+            Tuple of (is_valid, error_message).
+        """
+        # Check file extension
+        if file_path.suffix.lower() not in self.SUPPORTED_EXTENSIONS:
+            return False, f"Unsupported format: {file_path.suffix}"
+
+        # Check file size (minimum 1KB to filter empty/corrupted files)
+        try:
+            file_size = file_path.stat().st_size
+            if file_size < 1024:
+                return False, f"File too small ({file_size} bytes), likely corrupted"
+        except OSError as e:
+            return False, f"Cannot read file: {e}"
+
+        # Try to read the file with mutagen to verify it's valid audio
+        try:
+            audio = File(file_path)
+            if audio is None:
+                return False, "Not a valid audio file or unsupported format"
+            # Check if file has audio info
+            if not hasattr(audio, 'info') or audio.info is None:
+                return False, "Cannot read audio information"
+            return True, ""
+        except Exception as e:
+            error_msg = str(e)
+            # Provide more user-friendly error messages
+            if "can't sync to MPEG frame" in error_msg:
+                return False, "Corrupted MP3 file (invalid MPEG frames)"
+            elif "not a valid" in error_msg.lower():
+                return False, "Invalid or corrupted audio file"
+            return False, f"Audio validation failed: {error_msg}"
+
     def read_metadata(self, file_path: Path) -> AudioMetadata:
         """
         Read metadata from an audio file.
