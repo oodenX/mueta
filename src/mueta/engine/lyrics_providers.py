@@ -130,6 +130,11 @@ class NetEaseProvider(LyricsProvider):
     NAME = "NetEase"
     SEARCH_URL = "http://music.163.com/api/search/get/web"
     LYRIC_URL = "http://music.163.com/api/song/lyric"
+    HEADERS = {
+        "Referer": "http://music.163.com/",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+        "Cookie": "appver=1.5.0.75771",
+    }
 
     def get_lyrics(
         self,
@@ -148,7 +153,7 @@ class NetEaseProvider(LyricsProvider):
                 "total": "true",
                 "limit": 5,
             }
-            response = self.client.post(self.SEARCH_URL, data=params)
+            response = self.client.post(self.SEARCH_URL, data=params, headers=self.HEADERS)
             response.raise_for_status()
             data = response.json()
 
@@ -175,6 +180,7 @@ class NetEaseProvider(LyricsProvider):
             lyric_response = self.client.get(
                 self.LYRIC_URL,
                 params={"id": best_song_id, "lv": 1, "kv": 1, "tv": -1},
+                headers=self.HEADERS,
             )
             lyric_response.raise_for_status()
             lyric_data = lyric_response.json()
