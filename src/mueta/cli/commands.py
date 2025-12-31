@@ -34,6 +34,8 @@ def main(
 def init():
     """Initialize mueta and configure basic information (API_KEY, storage paths, etc.)"""
     from mueta.core.config import Settings
+    from mueta.utils.system import check_fpcalc
+    import httpx
 
     console.print(
         Panel.fit(
@@ -42,6 +44,22 @@ def init():
             border_style="cyan",
         )
     )
+
+    # Check fpcalc dependency
+    fpcalc_installed, install_guide = check_fpcalc()
+    if not fpcalc_installed:
+        console.print("\n[yellow]⚠️  未检测到 fpcalc[/yellow]")
+        console.print(f"[dim]{install_guide}[/dim]")
+
+        continue_anyway = Prompt.ask(
+            "\n是否继续配置？(稍后安装 fpcalc 也可以正常使用)",
+            choices=["y", "n"],
+            default="y"
+        )
+
+        if continue_anyway.lower() != "y":
+            console.print("[yellow]配置已取消[/yellow]")
+            raise typer.Exit(0)
 
     # Get default paths
     default_audio_dir = str(Path.home() / ".mueta" / "audio")
@@ -73,6 +91,30 @@ def init():
     if not acoustid_key:
         console.print("[red]❌ AcoustID API key is required![/red]")
         raise typer.Exit(1)
+
+    # Validate AcoustID API key
+    console.print("  [dim]Validating API key...[/dim]")
+    try:
+        # Test API key with a minimal request
+        test_url = "https://api.acoustid.org/v2/lookup"
+        params = {
+            "client": acoustid_key,
+            "meta": "recordings",
+            "duration": "1",
+            "fingerprint": "AQABEUmUaEmoSBGmQ"  # Minimal test fingerprint
+        }
+        response = httpx.get(test_url, params=params, timeout=10.0)
+
+        if response.status_code == 200:
+            data = response.json()
+            if data.get("status") == "ok":
+                console.print("  [green]✓ API Key 验证成功[/green]")
+            else:
+                console.print("  [yellow]⚠️  API Key 可能无效，但已保存[/yellow]")
+        else:
+            console.print("  [yellow]⚠️  验证失败，但已保存 Key[/yellow]")
+    except Exception as e:
+        console.print(f"  [yellow]⚠️  无法验证 (网络错误)，Key 已保存[/yellow]")
 
     # Genius API key
     console.print("\n[bold]🔑 Genius API Key (Optional)[/bold]")

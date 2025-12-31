@@ -11,6 +11,9 @@ data/
 logs/
 test_audio/
 
+# Documentation and demo source files (keep only GIFs)
+docs/
+demo/*.tape
 *.egg-info/
 *.pyc
 .mypy_cache/

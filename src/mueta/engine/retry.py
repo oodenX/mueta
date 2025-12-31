@@ -6,6 +6,7 @@ import functools
 from typing import TypeVar, Callable, Any
 from loguru import logger
 import httpx
+from mueta.utils.errors import translate_http_error
 
 T = TypeVar("T")
 
@@ -101,12 +102,14 @@ def make_request_with_retry(
 
             if attempt < max_retries:
                 delay = min(base_delay * (2 ** attempt), 30.0)
+                friendly_error = translate_http_error(e)
                 logger.warning(
-                    f"Request failed (attempt {attempt + 1}/{max_retries + 1}): {e}. "
+                    f"Request failed (attempt {attempt + 1}/{max_retries + 1}): {friendly_error}. "
                     f"Retrying in {delay:.1f}s..."
                 )
                 time.sleep(delay)
             else:
-                logger.error(f"Request failed after {max_retries + 1} attempts: {e}")
+                friendly_error = translate_http_error(e)
+                logger.error(f"Request failed after {max_retries + 1} attempts: {friendly_error}")
 
     raise last_exception

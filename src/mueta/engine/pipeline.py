@@ -16,6 +16,8 @@ from mueta.engine.cover import CoverService
 from rich.console import Console
 from rich.prompt import Prompt
 from rich.table import Table
+from mueta.utils.errors import translate_http_error
+import httpx
 
 
 class MetaPipeline:
@@ -250,8 +252,12 @@ class MetaPipeline:
             return result
 
         except Exception as e:
-            logger.error(f"Failed to process {file_path.name}: {e}")
-            result.error = str(e)
+            logger.error(f"Pipeline error for {file_path.name}: {e}")
+            # Translate HTTP errors to user-friendly messages
+            if isinstance(e, (httpx.HTTPError, httpx.HTTPStatusError, httpx.ConnectError, httpx.TimeoutException)):
+                result.error = translate_http_error(e)
+            else:
+                result.error = str(e)
 
             # Still handle file placement even on error
             try:
