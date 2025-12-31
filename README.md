@@ -53,9 +53,11 @@ sudo pacman -S chromaprint
 ```bash
 mueta init
 ```
-然后会引导用户输入 **AcoustID API key** 等等信息。
+然后在其中引导用户输入 **AcoustID API key** 和可选的 **Genius API key** 等信息。
 
 > 💡 获取 AcoustID API key: https://acoustid.org/new-application
+>
+> 💡 获取 Genius API key (可选): https://genius.com/api-clients (创建 API Client 后取 `Client Access Token`)
 
 ### 获取一个音频的所有元属性
 用来获取这个音频的所有的元属性。
