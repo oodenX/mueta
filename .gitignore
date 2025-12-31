@@ -3,7 +3,6 @@ __pycache__/
 
 .env
 resource/
-tests/
 dist/
 data/
 .vscode/

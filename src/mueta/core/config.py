@@ -12,6 +12,14 @@ class Settings(BaseSettings):
     acoustid_api_key: str
     genius_api_key: str | None = None
 
+    # Retry configuration
+    max_retries: int = 3
+    base_delay: float = 1.0
+    max_delay: float = 30.0
+
+    # Processing configuration
+    default_workers: int = 3
+
     @staticmethod
     def _get_config_path() -> Path:
         dev_config = Path(__file__).resolve().parents[3] / "config.toml"
@@ -41,6 +49,10 @@ class Settings(BaseSettings):
                     settings_dict.update(config_data["acoustid"])
                 if "genius" in config_data:
                     settings_dict.update(config_data["genius"])
+                if "retry" in config_data:
+                    settings_dict.update(config_data["retry"])
+                if "processing" in config_data:
+                    settings_dict.update(config_data["processing"])
 
                 # Expand paths with ~ to absolute paths
                 if "audio_save_dir" in settings_dict:

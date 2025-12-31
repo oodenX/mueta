@@ -3,6 +3,20 @@
 ## 介绍
 这是一个可以为音频自动获取各种元属性（如艺术家、专辑、歌词、流派等等）的 CLI 程序。
 
+> [!IMPORTANT]
+> **关于数据来源**
+>
+> Mueta 使用以下数据源：
+> - **官方 API**: AcoustID, MusicBrainz, Genius (需要 API Key)
+> - **非官方 API**: NetEase Cloud Music (网易云音乐), QQ Music
+>
+> ⚠️ **非官方 API 风险提示**：NetEase 和 QQ Music 的 API 为非官方逆向接口，可能存在以下风险：
+> - API 格式随时可能变更导致功能失效
+> - 可能存在访问频率限制
+> - 不保证长期稳定性
+>
+> 建议优先使用官方 API 来源的数据。非官方来源仅作为补充。
+
 ## 安装
 
 ### 依赖

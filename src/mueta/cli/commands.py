@@ -136,6 +136,14 @@ acoustid_api_key = "{acoustid_key}"
 
 [genius]
 genius_api_key = "{genius_key or ''}"
+
+[retry]
+max_retries = 3
+base_delay = 1.0
+max_delay = 30.0
+
+[processing]
+default_workers = 3
 """
 
     with open(config_path, "w", encoding="utf-8") as f:
