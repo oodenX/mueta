@@ -103,6 +103,45 @@ class MetaPipeline:
                         break
 
                 if not recording_id:
+                    # Fallback: Try to get lyrics using existing metadata from file tags
+                    if existing_meta and existing_meta.title and existing_meta.artist:
+                        logger.info(f"MusicBrainz failed, trying lyrics with existing tags: {existing_meta.artist} - {existing_meta.title}")
+
+                        # Attempt lyrics fetch using existing metadata
+                        if options.download_lyrics or options.embed_lyrics:
+                            lyrics_result = self.lyrics.get_lyrics(
+                                artist=existing_meta.artist,
+                                track=existing_meta.title,
+                                album=existing_meta.album,
+                                duration=existing_meta.duration,
+                            )
+
+                            if lyrics_result:
+                                logger.info(f"Lyrics found via existing metadata!")
+
+                                # Embed if requested
+                                if options.embed_lyrics:
+                                    if lyrics_result.synced_lyrics:
+                                        self.tagger.embed_lyrics(file_path, lyrics_result.synced_lyrics, synced=True)
+                                    elif lyrics_result.plain_lyrics:
+                                        self.tagger.embed_lyrics(file_path, lyrics_result.plain_lyrics, synced=False)
+
+                                # Save .lrc file
+                                if settings.lyrics_save_dir and lyrics_result.synced_lyrics:
+                                    lrc_dir = Path(settings.lyrics_save_dir)
+                                    lrc_dir.mkdir(parents=True, exist_ok=True)
+                                    safe_artist = re.sub(r'[<>:"/\\|?*]', '_', existing_meta.artist)
+                                    safe_title = re.sub(r'[<>:"/\\|?*]', '_', existing_meta.title)
+                                    lrc_path = lrc_dir / f"{safe_artist} - {safe_title}.lrc"
+                                    self.lyrics.save_lrc_file(lyrics_result.synced_lyrics, lrc_path)
+
+                                # Mark as partial success
+                                result.success = True
+                                result.metadata = existing_meta
+                                result.error = "MusicBrainz failed but lyrics found via existing tags"
+                                self._handle_file_placement(file_path, options)
+                                return result
+
                     result.error = "No match found in AcoustID or MusicBrainz search"
                     logger.warning(f"No match found for: {file_path.name}")
 
