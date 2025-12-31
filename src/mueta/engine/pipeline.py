@@ -13,6 +13,9 @@ from mueta.engine.musicbrainz import MusicBrainzService
 from mueta.engine.lyrics import LyricsService
 from mueta.engine.tagger import TaggerService
 from mueta.engine.cover import CoverService
+from rich.console import Console
+from rich.prompt import Prompt
+from rich.table import Table
 
 
 class MetaPipeline:
@@ -97,10 +100,22 @@ class MetaPipeline:
                     if strict and search_artist and '、' in search_artist:
                         search_artist = search_artist.split('、')[0].strip()
 
-                    recording_id = self.musicbrainz.get_best_search_result(q_title, search_artist, strict=strict)
-                    if recording_id:
-                        logger.info(f"Match found using strategy: title='{q_title}', artist='{search_artist}', strict={strict}")
-                        break
+                    if options.interactive:
+                        # Interactive mode: search and prompt
+                        query = f'recording:"{q_title}" AND artist:"{search_artist}"' if strict else q_title
+                        results = self.musicbrainz.search_recordings(query, limit=5)
+
+                        if results:
+                            selected_id = self._prompt_user_selection(results, q_title, search_artist or "")
+                            if selected_id:
+                                recording_id = selected_id
+                                break
+                    else:
+                        # Automatic mode: pick best match
+                        recording_id = self.musicbrainz.get_best_search_result(q_title, search_artist, strict=strict)
+                        if recording_id:
+                            logger.info(f"Match found using strategy: title='{q_title}', artist='{search_artist}', strict={strict}")
+                            break
 
                 if not recording_id:
                     # Fallback: Try to get lyrics using existing metadata from file tags
@@ -367,3 +382,42 @@ class MetaPipeline:
         except Exception as e:
             logger.error(f"Failed to handle file placement: {e}")
             return None
+
+    def _prompt_user_selection(self, candidates: list[dict], title: str, artist: str) -> str | None:
+        """
+        Interactive prompt for user to select a recording.
+        """
+        console = Console()
+        console.print(f"\n[bold cyan]❓ Multiple matches found for:[/bold cyan] {title} - {artist}")
+
+        table = Table(show_header=True, header_style="bold magenta")
+        table.add_column("#", style="dim", width=4)
+        table.add_column("Title", style="white")
+        table.add_column("Artist", style="green")
+        table.add_column("Album", style="cyan")
+        table.add_column("Date", style="yellow")
+        table.add_column("Score", style="blue")
+
+        for idx, rec in enumerate(candidates, 1):
+            rec_title = rec.get("title", "Unknown")
+            rec_artists = ", ".join(a["name"] for a in rec.get("artist-credit", [])) or "Unknown"
+            rec_album = rec.get("releases", [{}])[0].get("title", "Unknown") if rec.get("releases") else "Unknown"
+            rec_date = rec.get("first-release-date", "Unknown")
+            score = rec.get("score", "N/A")
+
+            table.add_row(str(idx), rec_title, rec_artists, rec_album, rec_date, str(score))
+
+        console.print(table)
+
+        choices = [str(i) for i in range(1, len(candidates) + 1)] + ["0", "s", "skip"]
+        selection = Prompt.ask(
+            "Select a match (0/s to skip)",
+            choices=choices,
+            default="1"
+        )
+
+        if selection in ("0", "s", "skip"):
+            return None
+
+        index = int(selection) - 1
+        return candidates[index]["id"]

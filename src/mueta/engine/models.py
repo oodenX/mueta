@@ -98,6 +98,7 @@ class ProcessOptions(BaseModel):
     embed_lyrics: bool = False
     embed_cover: bool = True
     reserve_original: bool = False  # If True, keep original file and copy; if False, move file
+    interactive: bool = False  # If True, prompt user when no high-confidence match found
 
 
 class ProcessResult(BaseModel):

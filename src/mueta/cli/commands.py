@@ -236,6 +236,9 @@ def get_meta(
     workers: Annotated[
         int, typer.Option("--workers", "-w", help="Number of parallel workers")
     ] = 3,
+    interactive: Annotated[
+        bool, typer.Option("--interactive", "-i", help="Interactive mode (ask user when unsure)")
+    ] = False,
 ):
     """Get metadata for one or multiple audio files with optional lyrics."""
     from mueta.engine.pipeline import MetaPipeline, ProcessOptions
@@ -244,11 +247,17 @@ def get_meta(
     from threading import Lock
     from mueta.engine.tagger import TaggerService
 
+    if interactive:
+        if workers > 1:
+            console.print("[yellow]⚠️ Interactive mode enabled: Forcing workers=1 to prevent console conflicts[/yellow]")
+            workers = 1
+
     options = ProcessOptions(
         download_lyrics=lyric,
         embed_lyrics=embedded,
         embed_cover=cover,
         reserve_original=reserve,
+        interactive=interactive,
     )
 
     # Filter out non-existent files
@@ -386,6 +395,9 @@ def get_meta_from_folder(
     workers: Annotated[
         int, typer.Option("--workers", "-w", help="Number of parallel workers")
     ] = 3,
+    interactive: Annotated[
+        bool, typer.Option("--interactive", "-i", help="Interactive mode (ask user when unsure)")
+    ] = False,
 ):
     """Get metadata for all audio files in a folder with optional lyrics."""
     folder_path = Path(folder)
@@ -407,4 +419,4 @@ def get_meta_from_folder(
     console.print(f"[bold cyan]📁 Found {len(audio_files)} audio files in folder[/bold cyan]\n")
 
     # Reuse get_meta logic with same worker count
-    get_meta(files=audio_files, lyric=lyric, embedded=embedded, cover=cover, reserve=reserve, workers=workers)
+    get_meta(files=audio_files, lyric=lyric, embedded=embedded, cover=cover, reserve=reserve, workers=workers, interactive=interactive)
