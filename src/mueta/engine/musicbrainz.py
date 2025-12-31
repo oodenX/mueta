@@ -409,30 +409,41 @@ class MusicBrainzService:
 
         return None
 
-    def search_recordings(self, query: str, artist: str | None = None, limit: int = 5) -> list[dict]:
+    def search_recordings(self, query: str, artist: str | None = None, limit: int = 5, strict: bool = True) -> list[dict]:
         """
         Search for recordings by query string.
 
         Args:
-            query: Search query (track title).
+            query: Search query (track title or raw string).
             artist: Artist name to narrow search (optional).
             limit: Maximum number of results.
+            strict: If True, uses field prefixes (recording:..., artist:...).
+                    If False, uses raw query string for fuzzy matching.
 
         Returns:
             List of recording search results.
         """
-        logger.info(f"Searching MusicBrainz: {query}" + (f" by {artist}" if artist else ""))
+        logger.info(f"Searching MusicBrainz ({'strict' if strict else 'relaxed'}): {query}" + (f" by {artist}" if artist else ""))
 
         url = f"{self.BASE_URL}/recording"
 
         # Build search query
         search_parts = []
-        if query:
-            search_parts.append(f'recording:"{query}"')
-        if artist:
-            search_parts.append(f'artist:"{artist}"')
 
-        search_query = " AND ".join(search_parts) if search_parts else query
+        if strict:
+            if query:
+                search_parts.append(f'recording:"{query}"')
+            if artist:
+                search_parts.append(f'artist:"{artist}"')
+            search_query = " AND ".join(search_parts) if search_parts else query
+        else:
+            # Relaxed search: just combine terms
+            terms = [query]
+            if artist:
+                terms.append(artist)
+            search_query = " ".join(terms)
+
+
 
         params = {
             "query": search_query,
@@ -453,18 +464,19 @@ class MusicBrainzService:
             logger.warning(f"MusicBrainz search error: {e}")
             return []
 
-    def get_best_search_result(self, query: str, artist: str | None = None) -> str | None:
+    def get_best_search_result(self, query: str, artist: str | None = None, strict: bool = True) -> str | None:
         """
         Search and return the best matching recording ID.
 
         Args:
             query: Track title.
             artist: Artist name (optional).
+            strict: Strict search mode (field prefixes).
 
         Returns:
             Best matching recording MBID or None.
         """
-        recordings = self.search_recordings(query, artist, limit=5)
+        recordings = self.search_recordings(query, artist, limit=5, strict=strict)
 
         if not recordings:
             return None

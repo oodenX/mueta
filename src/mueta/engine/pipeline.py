@@ -70,12 +70,37 @@ class MetaPipeline:
                 # Try to parse filename for artist and title
                 artist, title = self._parse_filename(file_path.stem)
 
-                # Clean up artist name (use first artist only if multiple)
-                if artist and '、' in artist:
-                    artist = artist.split('、')[0].strip()
+                candidates = []
+                if artist and title:
+                    # 1. Strict search with parsed order
+                    candidates.append((title, artist, True))
+                    # 2. Strict search with swapped order (Title - Artist assumption)
+                    candidates.append((artist, title, True)) # Swap
+                elif title:
+                    candidates.append((title, None, True))
 
-                if title:
-                    recording_id = self.musicbrainz.get_best_search_result(title, artist)
+                # 3. Relaxed search (fuzzy match)
+                if artist and title:
+                    candidates.append((f"{title} {artist}", None, False))
+                elif title:
+                     candidates.append((title, None, False))
+
+                # Clean up artist name for first attempts
+                clean_artist = None
+                if artist and '、' in artist:
+                    clean_artist = artist.split('、')[0].strip()
+
+                # Execute search strategy
+                for q_title, q_artist, strict in candidates:
+                    # Use cleaned artist for strict searches if available
+                    search_artist = q_artist
+                    if strict and search_artist and '、' in search_artist:
+                        search_artist = search_artist.split('、')[0].strip()
+
+                    recording_id = self.musicbrainz.get_best_search_result(q_title, search_artist, strict=strict)
+                    if recording_id:
+                        logger.info(f"Match found using strategy: title='{q_title}', artist='{search_artist}', strict={strict}")
+                        break
 
                 if not recording_id:
                     result.error = "No match found in AcoustID or MusicBrainz search"
@@ -130,9 +155,16 @@ class MetaPipeline:
                                 synced=False,
                             )
 
-                        # Save .lrc file if requested
-                        if options.download_lyrics and lyrics_result.synced_lyrics:
-                            lrc_path = Path(settings.lyrics_save_dir) / f"{metadata.artist} - {metadata.title}.lrc"
+                        # Save .lrc file if configured (regardless of explicit download option since we have it)
+                        if settings.lyrics_save_dir and lyrics_result.synced_lyrics:
+                            lrc_dir = Path(settings.lyrics_save_dir)
+                            lrc_dir.mkdir(parents=True, exist_ok=True)
+
+                            # Clean filename
+                            safe_artist = re.sub(r'[<>:"/\\|?*]', '_', metadata.artist)
+                            safe_title = re.sub(r'[<>:"/\\|?*]', '_', metadata.title)
+
+                            lrc_path = lrc_dir / f"{safe_artist} - {safe_title}.lrc"
                             self.lyrics.save_lrc_file(lyrics_result.synced_lyrics, lrc_path)
 
             # Step 6: Write metadata to file
