@@ -70,11 +70,7 @@ pyinstaller --onefile --name mueta --paths src src/mueta/main.py
 ```bash
 mueta init
 ```
-然后在其中引导用户输入 **AcoustID API key** 和可选的 **Genius API key** 等信息。
-
-> 💡 获取 AcoustID API key: https://acoustid.org/new-application
->
-> 💡 获取 Genius API key (可选): https://genius.com/api-clients (创建 API Client 后取 `Client Access Token`)
+然后会引导用户输入 **AcoustID API key** 等等信息。
 
 ### 获取一个音频的所有元属性
 用来获取这个音频的所有的元属性。
@@ -85,9 +81,12 @@ mueta view-meta FILE
 - `FILE`: 文件名称，以 mp3、flac、acc等音频格式。
 
 **选项**:
-- `-c --show-cover`: 是否显示封面，但是终端的分辨率非常低，不建议加上。
+- `-c --cover`: 是否显示封面，但是终端的分辨率非常低，不建议加上。
 
 ### 获取文件的所有的元属性
+
+![Mueta Get Meta Demo](demo/get_meta.gif)
+
 获取单个或者多个文件的元属性，文件用空格分开，可以选择是否有歌词，并且选择是否嵌入歌词到元属性中，或者一个 lrc 文件。
 ```bash
 mueta get-meta [OPTIONS] FILES
@@ -99,9 +98,10 @@ mueta get-meta [OPTIONS] FILES
 - `-l --lyric`: 是否下载 .lrc 歌词，歌词保存到默认的位置。
 - `-e --embedded`: 是否嵌入歌词，歌词会嵌入到歌词的元属性中，但是有的播放器可能不会使用。
 - `-c --cover`: 是否下载封面嵌入音频，默认打开。
-- `-r --reserve`: 保留原文件（复制而不是移动）。
 - `-w --workers`: 并行数，默认为3，可以根据自己的需求调整，要求为整数。
 - `-i --interactive`: 交互式模式，当有多个匹配结果时手动选择（此模式下 workers 强制为 1）。
+
+![Mueta Interactive Demo](demo/interactive.gif)
 
 ### 获取文件夹下所有文件的所有的元属性
 获取一个文件夹下面所有的音频的元属性，可以选择是否有歌词，并且选择是否嵌入歌词到元属性中，或者一个 lrc 文件。
