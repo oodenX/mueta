@@ -23,4 +23,4 @@ Sleep 1s
 Type "optional_genius_token..."
 Sleep 500ms
 Enter
-Sleep 3s
+Sleep 10s

@@ -73,6 +73,9 @@ mueta init
 然后会引导用户输入 **AcoustID API key** 等等信息。
 
 ### 获取一个音频的所有元属性
+
+![Mueta View Meta Demo](demo/view_meta.gif)
+
 用来获取这个音频的所有的元属性。
 ```bash
 mueta view-meta FILE

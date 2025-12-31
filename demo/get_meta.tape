@@ -8,4 +8,4 @@ Set FontFamily "JetBrains Mono"
 
 Type "mueta get-meta 'test_audio/16 -out of the gravity- - ぼーかりおどP、初音ミク.flac' -c -l"
 Enter
-Sleep 8s
+Sleep 20s
