@@ -144,10 +144,100 @@ genius_api_key = "{genius_key or ''}"
     console.print(
         Panel.fit(
             f"[bold green]✅ Configuration saved![/bold green]\n"
-            f"Config file: [cyan]{config_path}[/cyan]",
+            f"Config file: [cyan]{config_path}[/cyan]\n\n"
+            f"[dim]Tip: Use 'mueta config' to view or edit this file anytime.[/dim]",
             border_style="green",
         )
     )
+
+
+@app.command(rich_help_panel="General Commands")
+def config():
+    """View or edit mueta configuration file."""
+    from mueta.core.config import Settings
+    import subprocess
+    import platform
+
+    config_path = Settings._get_config_path()
+
+    if not config_path.exists():
+        console.print("[yellow]⚠️  配置文件不存在[/yellow]")
+        console.print(f"[dim]请先运行 'mueta init' 创建配置[/dim]")
+        raise typer.Exit(1)
+
+    console.print(
+        Panel.fit(
+            f"[bold cyan]📄 Mueta Configuration[/bold cyan]\n\n"
+            f"Config file: [green]{config_path}[/green]",
+            border_style="cyan",
+        )
+    )
+
+    # Ask if user wants to edit
+    edit = Prompt.ask(
+        "\n是否打开编辑器编辑配置文件？",
+        choices=["y", "n"],
+        default="n"
+    )
+
+    if edit.lower() == "y":
+        # Detect platform and open editor
+        system = platform.system()
+        try:
+            if system == "Windows":
+                subprocess.run(["notepad", str(config_path)])
+            elif system == "Darwin":  # macOS
+                subprocess.run(["open", "-e", str(config_path)])
+            else:  # Linux
+                # Try common editors in order
+                editors = ["nano", "vi", "vim", "gedit", "kate"]
+                editor = None
+                for ed in editors:
+                    if subprocess.run(["which", ed], capture_output=True).returncode == 0:
+                        editor = ed
+                        break
+
+                if editor:
+                    subprocess.run([editor, str(config_path)])
+                else:
+                    console.print("[yellow]未找到可用的文本编辑器[/yellow]")
+                    console.print(f"[dim]请手动编辑: {config_path}[/dim]")
+        except Exception as e:
+            console.print(f"[red]打开编辑器失败: {e}[/red]")
+            console.print(f"[dim]请手动编辑: {config_path}[/dim]")
+
+
+@app.command(rich_help_panel="General Commands")
+def cache_clean():
+    """Clear mueta cache database."""
+    from pathlib import Path
+
+    cache_db = Path.home() / ".mueta" / "cache.db"
+
+    if not cache_db.exists():
+        console.print("[yellow]⚠️  缓存文件不存在[/yellow]")
+        raise typer.Exit(0)
+
+    # Show cache size
+    cache_size_mb = cache_db.stat().st_size / (1024 * 1024)
+    console.print(f"\n[cyan]当前缓存大小: {cache_size_mb:.2f} MB[/cyan]")
+
+    # Confirm deletion
+    confirm = Prompt.ask(
+        "确认清空缓存？(此操作不可恢复)",
+        choices=["y", "n"],
+        default="n"
+    )
+
+    if confirm.lower() == "y":
+        try:
+            cache_db.unlink()
+            console.print("[green]✓ 缓存已清空[/green]")
+        except Exception as e:
+            console.print(f"[red]清空失败: {e}[/red]")
+            raise typer.Exit(1)
+    else:
+        console.print("[yellow]已取消[/yellow]")
 
 
 @app.command(rich_help_panel="General Commands")
@@ -281,6 +371,9 @@ def get_meta(
     interactive: Annotated[
         bool, typer.Option("--interactive", "-i", help="Interactive mode (ask user when unsure)")
     ] = False,
+    skip_existing: Annotated[
+        bool, typer.Option("--skip-existing", "-s", help="Skip files that already have complete metadata")
+    ] = False,
 ):
     """Get metadata for one or multiple audio files with optional lyrics."""
     from mueta.engine.pipeline import MetaPipeline, ProcessOptions
@@ -316,6 +409,13 @@ def get_meta(
         # Quick validation before processing
         is_valid, error = tagger.validate_audio_file(file_path)
         if is_valid:
+            # Skip if already has complete metadata
+            if skip_existing:
+                existing_meta = tagger.read_metadata(file_path)
+                if existing_meta and existing_meta.title and existing_meta.artist:
+                    console.print(f"[dim]⏭️  Skipping (has metadata): {file_path.name}[/dim]")
+                    continue
+
             valid_files.append(file_path)
         else:
             console.print(f"[yellow]⚠️ Skipping ({error}): {file_path.name}[/yellow]")
@@ -440,6 +540,9 @@ def get_meta_from_folder(
     interactive: Annotated[
         bool, typer.Option("--interactive", "-i", help="Interactive mode (ask user when unsure)")
     ] = False,
+    skip_existing: Annotated[
+        bool, typer.Option("--skip-existing", "-s", help="Skip files that already have complete metadata")
+    ] = False,
 ):
     """Get metadata for all audio files in a folder with optional lyrics."""
     folder_path = Path(folder)
@@ -461,4 +564,4 @@ def get_meta_from_folder(
     console.print(f"[bold cyan]📁 Found {len(audio_files)} audio files in folder[/bold cyan]\n")
 
     # Reuse get_meta logic with same worker count
-    get_meta(files=audio_files, lyric=lyric, embedded=embedded, cover=cover, reserve=reserve, workers=workers, interactive=interactive)
+    get_meta(files=audio_files, lyric=lyric, embedded=embedded, cover=cover, reserve=reserve, workers=workers, interactive=interactive, skip_existing=skip_existing)
