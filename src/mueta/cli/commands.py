@@ -9,7 +9,7 @@ from rich.panel import Panel
 from rich import print as rprint
 from mueta.cli.completion import Completer
 
-__version__ = "1.0.0"
+__version__ = "0.1.0"
 
 def version_callback(value: bool):
     if value:

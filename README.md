@@ -47,6 +47,23 @@ brew install chromaprint
 sudo pacman -S chromaprint
 ```
 
+### 打包为独立可执行文件 (Standalone Binary)
+如果你不想在目标机器上安装 Python 环境，可以使用 PyInstaller 将其打包为独立的可执行文件。
+
+1. **安装打包依赖**:
+```bash
+pip install pyinstaller
+```
+
+2. **执行打包**:
+```bash
+# 在项目根目录下运行
+pyinstaller --onefile --name mueta --paths src src/mueta/main.py
+```
+
+3. **使用**:
+打包完成后，在 `dist/` 目录下会生成 `mueta` (Windows 为 `mueta.exe`)。你可以将其移动到 `/usr/local/bin` 或其他系统的 PATH 目录中直接使用。
+
 ## 使用
 ### 初始化程序
 用来初始化，并且配置基本的信息（API_KEY），音乐和歌词默认存储位置等等。
