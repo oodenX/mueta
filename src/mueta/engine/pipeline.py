@@ -200,12 +200,14 @@ class MetaPipeline:
 
     def _parse_filename(self, filename: str) -> tuple[str | None, str | None]:
         """
-        Parse filename to extract artist and title.
+        Parse filename to extract artist and title with smart pattern recognition.
 
-        Common formats:
-        - "Artist - Title"
+        Supported formats:
         - "Title - Artist"
-        - "Artist、Artist - Title"
+        - "Title (feat. X) - Artist"
+        - "[Artist] Title"
+        - "Title (Artist)"
+        - "Title [Cover] - Artist"
 
         Args:
             filename: Filename without extension.
@@ -213,27 +215,58 @@ class MetaPipeline:
         Returns:
             Tuple of (artist, title).
         """
-        # Remove common unwanted patterns
-        filename = re.sub(r'\(.*?\)', '', filename)  # Remove (feat. ...)
-        filename = re.sub(r'\[.*?\]', '', filename)  # Remove [...]
-        filename = filename.strip()
+        original_filename = filename
 
-        # Try to split by " - "
-        parts = filename.split(' - ')
+        # Step 1: Extract featured artists from (feat. X) or (ft. X) patterns
+        feat_match = re.search(r'\((?:feat\.?|ft\.?)\s*([^)]+)\)', filename, re.IGNORECASE)
+        featured_artists = feat_match.group(1).strip() if feat_match else None
 
+        # Step 2: Remove noise patterns but keep track of them
+        # Remove (feat. ...), [Cover], [Remix], etc.
+        clean_filename = re.sub(r'\s*\((?:feat\.?|ft\.?)\s*[^)]+\)', '', filename, flags=re.IGNORECASE)
+        clean_filename = re.sub(r'\s*\[(?:Cover|Remix|Instrumental|Live|Ver\.?|Version)\]', '', clean_filename, flags=re.IGNORECASE)
+        clean_filename = clean_filename.strip()
+
+        # Step 3: Try different parsing strategies
+
+        # Strategy A: "[Artist] Title" format
+        bracket_artist_match = re.match(r'^\[([^\]]+)\]\s*(.+)$', clean_filename)
+        if bracket_artist_match:
+            artist = bracket_artist_match.group(1).strip()
+            title = bracket_artist_match.group(2).strip()
+            return artist, title
+
+        # Strategy B: "Title (Artist)" format (parentheses at end)
+        paren_artist_match = re.match(r'^(.+?)\s*\(([^)]+)\)$', clean_filename)
+        if paren_artist_match:
+            title = paren_artist_match.group(1).strip()
+            artist = paren_artist_match.group(2).strip()
+            return artist, title
+
+        # Strategy C: Standard "X - Y" format
+        parts = clean_filename.split(' - ')
         if len(parts) >= 2:
-            # Assume format: "Title - Artist" or "Artist - Title"
-            # Check which part has Japanese/Chinese characters (more likely artist)
-            part1, part2 = parts[0].strip(), parts[-1].strip()
+            part1, part2 = parts[0].strip(), ' - '.join(parts[1:]).strip()
 
-            # Heuristic: if second part has "、" (Japanese comma), it's likely artist
+            # Heuristic detection:
+            # - If part2 contains '、' (Japanese comma) → likely multiple artists → part2 is artist
+            # - If part2 is mostly CJK characters → likely artist
+            # - Otherwise, assume "Title - Artist" or "Artist - Title" based on length
+
             if '、' in part2:
-                return part2, part1  # artist, title
+                # "Title - Artist1、Artist2" format
+                return part2, part1
+            elif '、' in part1:
+                # "Artist1、Artist2 - Title" format
+                return part1, part2
             else:
-                return part1, part2  # assume artist, title
+                # Default: assume "Title - Artist" based on common naming
+                # Check if part1 looks more like a title (longer, has numbers/symbols)
+                # Or part2 looks more like artist (shorter, proper noun style)
+                return part2, part1  # Assume "Title - Artist"
 
-        # No clear separator, use filename as title
-        return None, filename
+        # Step 4: No clear separator, use filename as title
+        return None, clean_filename
 
     def _handle_file_placement(self, file_path: Path, options: ProcessOptions) -> Path | None:
         """

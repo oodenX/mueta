@@ -5,6 +5,7 @@ from loguru import logger
 import httpx
 
 from mueta.engine.models import AudioMetadata
+from mueta.engine.cache import MetadataCache
 
 
 class MusicBrainzService:
@@ -25,6 +26,7 @@ class MusicBrainzService:
             headers=self.HEADERS,
             follow_redirects=True,
         )
+        self.cache = MetadataCache()
 
     def __del__(self):
         if hasattr(self, "client"):
@@ -42,6 +44,12 @@ class MusicBrainzService:
             AudioMetadata with filled fields.
         """
         logger.info(f"Fetching MusicBrainz recording: {mbid}")
+
+        # Check cache first
+        cached = self.cache.get_recording(mbid)
+        if cached:
+            logger.info(f"Cache hit for recording: {mbid}")
+            return AudioMetadata(**cached)
 
         url = f"{self.BASE_URL}/recording/{mbid}"
         params = {
@@ -122,6 +130,10 @@ class MusicBrainzService:
                     break
 
         logger.debug(f"Fetched metadata: {metadata.title} - {metadata.artist}")
+
+        # Cache the result
+        self.cache.set_recording(mbid, metadata.model_dump())
+
         return metadata
 
     def _get_release_details(self, release_mbid: str) -> dict | None:
@@ -476,9 +488,17 @@ class MusicBrainzService:
         Returns:
             Best matching recording MBID or None.
         """
+        # Check search cache first
+        cached_id = self.cache.get_search_result(query, artist, strict)
+        if cached_id is not None:
+            logger.info(f"Cache hit for search: '{query}'")
+            return cached_id if cached_id else None
+
         recordings = self.search_recordings(query, artist, limit=5, strict=strict)
 
         if not recordings:
+            # Cache negative result
+            self.cache.set_search_result(query, artist, strict, "")
             return None
 
         # Return the first (best) result's ID
@@ -491,5 +511,8 @@ class MusicBrainzService:
             artist_name = artist_credits[0].get("name", "Unknown") if artist_credits else "Unknown"
             score = best.get("score", 0)
             logger.info(f"Best search match: {title} - {artist_name} (score: {score})")
+
+            # Cache the result
+            self.cache.set_search_result(query, artist, strict, recording_id)
 
         return recording_id
