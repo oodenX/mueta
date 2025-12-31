@@ -6,6 +6,7 @@ import httpx
 
 from mueta.engine.models import AudioMetadata
 from mueta.engine.cache import MetadataCache
+from mueta.engine.retry import make_request_with_retry
 
 
 class MusicBrainzService:
@@ -58,8 +59,7 @@ class MusicBrainzService:
         }
 
         try:
-            response = self.client.get(url, params=params)
-            response.raise_for_status()
+            response = make_request_with_retry(self.client, 'get', url, params=params)
             recording = response.json()
         except httpx.HTTPError as e:
             logger.error(f"MusicBrainz API error: {e}")
@@ -153,8 +153,7 @@ class MusicBrainzService:
         }
 
         try:
-            response = self.client.get(url, params=params)
-            response.raise_for_status()
+            response = make_request_with_retry(self.client, 'get', url, params=params)
             return response.json()
         except httpx.HTTPError as e:
             logger.warning(f"Failed to fetch release details: {e}")
@@ -464,8 +463,7 @@ class MusicBrainzService:
         }
 
         try:
-            response = self.client.get(url, params=params)
-            response.raise_for_status()
+            response = make_request_with_retry(self.client, 'get', url, params=params)
             data = response.json()
 
             recordings = data.get("recordings", [])

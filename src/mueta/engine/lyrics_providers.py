@@ -9,6 +9,7 @@ import httpx
 from loguru import logger
 
 from mueta.engine.models import LyricsResult
+from mueta.engine.retry import make_request_with_retry
 
 
 class LyricsProvider(abc.ABC):
@@ -23,6 +24,10 @@ class LyricsProvider(abc.ABC):
     def __del__(self):
         if hasattr(self, "client"):
             self.client.close()
+
+    def _request(self, method: str, url: str, **kwargs) -> httpx.Response:
+        """Make HTTP request with automatic retry."""
+        return make_request_with_retry(self.client, method, url, **kwargs)
 
     @abc.abstractmethod
     def get_lyrics(
@@ -58,7 +63,7 @@ class LRCLIBProvider(LyricsProvider):
 
         try:
             # 1. Try exact match
-            response = self.client.get(f"{self.BASE_URL}/get", params=params)
+            response = self._request('get', f"{self.BASE_URL}/get", params=params)
             if response.status_code == 200:
                 data = response.json()
                 return self._parse_result(data)
@@ -72,11 +77,11 @@ class LRCLIBProvider(LyricsProvider):
 
     def _search_fallback(self, artist: str, track: str, duration: float | None) -> LyricsResult | None:
         try:
-            response = self.client.get(
+            response = self._request(
+                'get',
                 f"{self.BASE_URL}/search",
                 params={"q": track, "limit": 10},
             )
-            response.raise_for_status()
             results = [self._parse_result(item) for item in response.json()]
             return self._find_best_match(results, artist, track, duration)
         except Exception as e:
@@ -153,8 +158,7 @@ class NetEaseProvider(LyricsProvider):
                 "total": "true",
                 "limit": 5,
             }
-            response = self.client.post(self.SEARCH_URL, data=params, headers=self.HEADERS)
-            response.raise_for_status()
+            response = self._request('post', self.SEARCH_URL, data=params, headers=self.HEADERS)
             data = response.json()
 
             songs = data.get("result", {}).get("songs", [])
@@ -177,12 +181,12 @@ class NetEaseProvider(LyricsProvider):
                 return None
 
             # 3. Get lyrics
-            lyric_response = self.client.get(
+            lyric_response = self._request(
+                'get',
                 self.LYRIC_URL,
                 params={"id": best_song_id, "lv": 1, "kv": 1, "tv": -1},
                 headers=self.HEADERS,
             )
-            lyric_response.raise_for_status()
             lyric_data = lyric_response.json()
 
             lrc = lyric_data.get("lrc", {}).get("lyric")
@@ -237,8 +241,7 @@ class QQMusicProvider(LyricsProvider):
                 "new_json": 1,
                 "remoteplace": "txt.yqq.song",
             }
-            response = self.client.get(self.SEARCH_URL, params=params, headers=self.HEADERS)
-            response.raise_for_status()
+            response = self._request('get', self.SEARCH_URL, params=params, headers=self.HEADERS)
             data = response.json()
 
             songs = data.get("data", {}).get("song", {}).get("list", [])
@@ -270,12 +273,12 @@ class QQMusicProvider(LyricsProvider):
                 "format": "json",
                 "nobase64": 1,
             }
-            lyric_response = self.client.get(
+            lyric_response = self._request(
+                'get',
                 self.LYRIC_URL,
                 params=lyric_params,
                 headers=self.HEADERS,
             )
-            lyric_response.raise_for_status()
             lyric_data = lyric_response.json()
 
             lrc = lyric_data.get("lyric", "")
@@ -318,12 +321,12 @@ class GeniusProvider(LyricsProvider):
         headers = {"Authorization": f"Bearer {self.api_key}"}
         try:
             # 1. Search
-            response = self.client.get(
+            response = self._request(
+                'get',
                 f"{self.BASE_URL}/search",
                 params={"q": f"{track} {artist}"},
                 headers=headers,
             )
-            response.raise_for_status()
             hits = response.json().get("response", {}).get("hits", [])
 
             if not hits:
@@ -367,8 +370,7 @@ class GeniusProvider(LyricsProvider):
 
     def _scrape_lyrics(self, url: str) -> str | None:
         try:
-            response = self.client.get(url)
-            response.raise_for_status()
+            response = self._request('get', url)
             html = response.text
 
             # Experimental Regex scraping for Genius

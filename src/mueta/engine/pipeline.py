@@ -157,14 +157,25 @@ class MetaPipeline:
                 metadata.acoustid_id = match["acoustid_id"]
 
             # Step 4: Get and embed cover art (if enabled)
-            if options.embed_cover and metadata.release_mbid:
-                cover_url = self.musicbrainz.get_cover_url(metadata.release_mbid)
-                if cover_url:
-                    metadata.cover_url = cover_url
-                    cover_data = self.cover.download(cover_url)
-                    if cover_data:
-                        image_data, mime_type = cover_data
-                        self.tagger.embed_cover(file_path, image_data, mime_type)
+            if options.embed_cover:
+                cover_data = None
+
+                # Try MusicBrainz / Cover Art Archive first
+                if metadata.release_mbid:
+                    cover_url = self.musicbrainz.get_cover_url(metadata.release_mbid)
+                    if cover_url:
+                        metadata.cover_url = cover_url
+                        cover_data = self.cover.download(cover_url)
+
+                # Fallback to NetEase/QQMusic if no cover from MusicBrainz
+                if not cover_data and metadata.artist and metadata.title:
+                    logger.info("MusicBrainz cover not found, trying NetEase/QQMusic...")
+                    cover_data = self.cover.get_cover_fallback(metadata.artist, metadata.title)
+
+                # Embed cover if found
+                if cover_data:
+                    image_data, mime_type = cover_data
+                    self.tagger.embed_cover(file_path, image_data, mime_type)
 
             # Step 5: Get lyrics (if enabled)
             if options.download_lyrics or options.embed_lyrics:
