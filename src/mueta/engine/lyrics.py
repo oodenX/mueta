@@ -1,5 +1,5 @@
 # src/mueta/engine/lyrics.py
-"""LRCLIB lyrics service."""
+"""Lyrics service with multi-provider support."""
 
 from pathlib import Path
 from loguru import logger
@@ -9,6 +9,7 @@ from mueta.engine.lyrics_providers import (
     LRCLIBProvider,
     LyricsProvider,
     NetEaseProvider,
+    QQMusicProvider,
 )
 from mueta.engine.models import LyricsResult
 
@@ -17,9 +18,11 @@ class LyricsService:
     """Service for fetching lyrics from multiple sources."""
 
     def __init__(self):
+        # Priority: LRCLIB -> NetEase -> QQMusic -> Genius
         self.providers: list[LyricsProvider] = [
             LRCLIBProvider(),
             NetEaseProvider(),
+            QQMusicProvider(),
             GeniusProvider(api_key=settings.genius_api_key),
         ]
 

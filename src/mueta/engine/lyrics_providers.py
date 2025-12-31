@@ -206,6 +206,99 @@ class NetEaseProvider(LyricsProvider):
             return None
 
 
+class QQMusicProvider(LyricsProvider):
+    """Provider for QQ Music (unofficial API)."""
+
+    NAME = "QQMusic"
+    SEARCH_URL = "https://c.y.qq.com/soso/fcgi-bin/client_search_cp"
+    LYRIC_URL = "https://c.y.qq.com/lyric/fcgi-bin/fcg_query_lyric_new.fcg"
+    HEADERS = {
+        "Referer": "https://y.qq.com/",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+    }
+
+    def get_lyrics(
+        self,
+        artist: str,
+        track: str,
+        album: str | None = None,
+        duration: float | None = None,
+    ) -> LyricsResult | None:
+        try:
+            # 1. Search for song
+            search_query = f"{track} {artist}"
+            params = {
+                "w": search_query,
+                "format": "json",
+                "p": 1,
+                "n": 5,
+                "ct": 24,
+                "qqmusic_ver": 1298,
+                "new_json": 1,
+                "remoteplace": "txt.yqq.song",
+            }
+            response = self.client.get(self.SEARCH_URL, params=params, headers=self.HEADERS)
+            response.raise_for_status()
+            data = response.json()
+
+            songs = data.get("data", {}).get("song", {}).get("list", [])
+            if not songs:
+                return None
+
+            # 2. Pick best song match
+            best_song = None
+            for song in songs:
+                song_artists = [s.get("name", "").lower() for s in song.get("singer", [])]
+                if any(art in artist.lower() for art in song_artists) or artist.lower() in str(song_artists):
+                    best_song = song
+                    break
+
+            if not best_song and songs:
+                best_song = songs[0]
+
+            if not best_song:
+                return None
+
+            songmid = best_song.get("mid")
+            if not songmid:
+                return None
+
+            # 3. Get lyrics
+            lyric_params = {
+                "songmid": songmid,
+                "g_tk": 5381,
+                "format": "json",
+                "nobase64": 1,
+            }
+            lyric_response = self.client.get(
+                self.LYRIC_URL,
+                params=lyric_params,
+                headers=self.HEADERS,
+            )
+            lyric_response.raise_for_status()
+            lyric_data = lyric_response.json()
+
+            lrc = lyric_data.get("lyric", "")
+            if not lrc:
+                return None
+
+            # Clean up potential HTML entities
+            import html
+            lrc = html.unescape(lrc)
+
+            return LyricsResult(
+                id=songmid,
+                track_name=best_song.get("name", track),
+                artist_name=", ".join(s.get("name", "") for s in best_song.get("singer", [])) or artist,
+                synced_lyrics=lrc,
+                plain_lyrics=lrc,
+            )
+
+        except Exception as e:
+            logger.warning(f"QQMusic error: {e}")
+            return None
+
+
 class GeniusProvider(LyricsProvider):
     """Provider for Genius."""
 
