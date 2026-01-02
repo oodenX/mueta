@@ -4,6 +4,8 @@ on:
   push:
     tags:
       - 'v*'
+    branches:
+      - develop
   workflow_dispatch:
 
 jobs:
@@ -16,6 +18,15 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+
+      - name: Get Version
+        id: get_version
+        run: |
+          if [[ $GITHUB_REF == refs/tags/* ]]; then
+            echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+          else
+            echo "VERSION=0.1.0-dev.${GITHUB_RUN_NUMBER}" >> $GITHUB_ENV
+          fi
 
       - name: Install dependencies
         run: |
@@ -35,8 +46,7 @@ jobs:
       - name: Create packages
         run: |
           mkdir -p release
-          VERSION=${GITHUB_REF#refs/tags/v}
-
+          
           # Create tar.gz
           tar -czvf release/mueta-${VERSION}-linux-x86_64.tar.gz -C dist mueta
 
@@ -80,6 +90,15 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: Get Version
+        shell: bash
+        run: |
+          if [[ $GITHUB_REF == refs/tags/* ]]; then
+            echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+          else
+            echo "VERSION=0.1.0-dev.${GITHUB_RUN_NUMBER}" >> $GITHUB_ENV
+          fi
+
       - name: Install dependencies
         run: |
           pip install pyinstaller
@@ -93,10 +112,13 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path release
-          $version = $env:GITHUB_REF -replace 'refs/tags/v', ''
+          $version = $env:VERSION
 
           # Create ZIP
           Compress-Archive -Path dist\mueta.exe -DestinationPath release\mueta-$version-windows-x86_64.zip
+          
+          # Copy EXE for direct upload
+          Copy-Item dist\mueta.exe -Destination release\mueta.exe
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -114,6 +136,14 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: Get Version
+        run: |
+          if [[ $GITHUB_REF == refs/tags/* ]]; then
+            echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+          else
+            echo "VERSION=0.1.0-dev.${GITHUB_RUN_NUMBER}" >> $GITHUB_ENV
+          fi
+
       - name: Install dependencies
         run: |
           pip install pyinstaller
@@ -127,13 +157,12 @@ jobs:
       - name: Create DMG
         run: |
           mkdir -p release
-          VERSION=${GITHUB_REF#refs/tags/v}
-
+          
           # Create app bundle
           mkdir -p "dist/Mueta.app/Contents/MacOS"
           cp dist/mueta "dist/Mueta.app/Contents/MacOS/"
 
-          cat > "dist/Mueta.app/Contents/Info.plist" << EOF
+          cat > "dist/Mueta.app/Contents/Info.plist" << XML
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
@@ -148,7 +177,7 @@ jobs:
               <string>${VERSION}</string>
           </dict>
           </plist>
-          EOF
+          XML
 
           # Create DMG
           create-dmg \
