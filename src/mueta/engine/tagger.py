@@ -2,13 +2,14 @@
 """Audio file tag reader and writer using mutagen."""
 
 from pathlib import Path
+
 from loguru import logger
 from mutagen._file import File
 from mutagen.easyid3 import EasyID3
-from mutagen.id3 import ID3
-from mutagen.id3._util import ID3NoHeaderError
-from mutagen.id3._frames import APIC, USLT
 from mutagen.flac import FLAC, Picture
+from mutagen.id3 import ID3
+from mutagen.id3._frames import APIC, USLT
+from mutagen.id3._util import ID3NoHeaderError
 from mutagen.mp4 import MP4, MP4Cover
 
 from mueta.engine.models import AudioMetadata
@@ -18,7 +19,16 @@ class TaggerService:
     """Service for reading and writing audio file tags."""
 
     # Supported audio formats
-    SUPPORTED_EXTENSIONS = {'.mp3', '.flac', '.m4a', '.ogg', '.opus', '.wav', '.aac', '.wma'}
+    SUPPORTED_EXTENSIONS = {
+        ".mp3",
+        ".flac",
+        ".m4a",
+        ".ogg",
+        ".opus",
+        ".wav",
+        ".aac",
+        ".wma",
+    }
 
     def validate_audio_file(self, file_path: Path) -> tuple[bool, str]:
         """
@@ -48,7 +58,7 @@ class TaggerService:
             if audio is None:
                 return False, "Not a valid audio file or unsupported format"
             # Check if file has audio info
-            if not hasattr(audio, 'info') or audio.info is None:
+            if not hasattr(audio, "info") or audio.info is None:
                 return False, "Cannot read audio information"
             return True, ""
         except Exception as e:
@@ -99,6 +109,15 @@ class TaggerService:
             values = audio.get(key)
             return list(values) if values else None
 
+        def get_float(key: str) -> float | None:
+            value = get_first(key)
+            if value:
+                try:
+                    return float(value)
+                except ValueError:
+                    return None
+            return None
+
         return AudioMetadata(
             title=get_first("title"),
             artist=get_first("artist"),
@@ -135,6 +154,9 @@ class TaggerService:
             # Additional info
             language=get_first("language"),
             copyright=get_first("copyright"),
+            # Analysis
+            bpm=get_float("bpm"),
+            key=get_first("initialkey") or get_first("key"),
             # MusicBrainz IDs
             mbid=get_first("musicbrainz_recordingid"),
             release_mbid=get_first("musicbrainz_albumid"),
@@ -208,6 +230,15 @@ class TaggerService:
             "acoustid_id": meta.acoustid_id,
         }
 
+        # Add Key/Scale if available
+        if meta.key:
+            key_str = meta.key
+            if meta.scale:
+                key_str += f" {meta.scale}"
+            # Try common keys for Key
+            tag_mapping["initialkey"] = key_str  # ID3 TKEY
+            tag_mapping["key"] = key_str  # Vorbis/APE
+
         for key, value in tag_mapping.items():
             if value:
                 try:
@@ -270,7 +301,9 @@ class TaggerService:
         audio.save()
         logger.debug(f"Metadata saved to: {file_path}")
 
-    def embed_cover(self, file_path: Path, image_data: bytes, mime_type: str = "image/jpeg") -> None:
+    def embed_cover(
+        self, file_path: Path, image_data: bytes, mime_type: str = "image/jpeg"
+    ) -> None:
         """
         Embed cover art into an audio file.
 
@@ -296,7 +329,9 @@ class TaggerService:
             logger.error(f"Failed to embed cover: {e}")
             raise
 
-    def _embed_cover_mp3(self, file_path: Path, image_data: bytes, mime_type: str) -> None:
+    def _embed_cover_mp3(
+        self, file_path: Path, image_data: bytes, mime_type: str
+    ) -> None:
         """Embed cover to MP3 file."""
         try:
             audio = ID3(file_path)
@@ -315,7 +350,9 @@ class TaggerService:
         )
         audio.save(file_path)
 
-    def _embed_cover_flac(self, file_path: Path, image_data: bytes, mime_type: str) -> None:
+    def _embed_cover_flac(
+        self, file_path: Path, image_data: bytes, mime_type: str
+    ) -> None:
         """Embed cover to FLAC file."""
         audio = FLAC(file_path)
         audio.clear_pictures()
@@ -329,7 +366,9 @@ class TaggerService:
         audio.add_picture(picture)
         audio.save()
 
-    def _embed_cover_mp4(self, file_path: Path, image_data: bytes, mime_type: str) -> None:
+    def _embed_cover_mp4(
+        self, file_path: Path, image_data: bytes, mime_type: str
+    ) -> None:
         """Embed cover to MP4/M4A file."""
         audio = MP4(file_path)
 
