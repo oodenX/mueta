@@ -62,6 +62,13 @@ class AudioMetadata(BaseModel):
     # Audio info
     duration: float | None = None
     bpm: float | None = None
+    danceability: float | None = None
+
+    # Analysis info
+    key: str | None = None
+    scale: str | None = None
+    loudness_lufs: float | None = None
+    dynamic_range: float | None = None
 
     # MusicBrainz IDs
     mbid: str | None = None  # MusicBrainz Recording ID (also known as Track ID)
@@ -97,8 +104,12 @@ class ProcessOptions(BaseModel):
     download_lyrics: bool = False
     embed_lyrics: bool = False
     embed_cover: bool = True
-    reserve_original: bool = False  # If True, keep original file and copy; if False, move file
-    interactive: bool = False  # If True, prompt user when no high-confidence match found
+    reserve_original: bool = (
+        False  # If True, keep original file and copy; if False, move file
+    )
+    interactive: bool = (
+        False  # If True, prompt user when no high-confidence match found
+    )
 
 
 class ProcessResult(BaseModel):
