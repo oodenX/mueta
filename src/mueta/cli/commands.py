@@ -317,6 +317,9 @@ def view_meta(
         ("original_year", "Original Year"),
         ("original_release_date", "Original Release Date"),
         ("genre", "Genre"),
+        ("genres", "Genres"),
+        ("mood", "Mood"),
+        ("moods", "Moods"),
         # Credits
         ("composer", "Composer"),
         ("lyricist", "Lyricist"),

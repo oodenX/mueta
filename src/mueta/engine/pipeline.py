@@ -17,6 +17,7 @@ from mueta.engine.fingerprint import FingerprintService
 from mueta.engine.lyrics import LyricsService
 from mueta.engine.models import AudioMetadata, ProcessOptions, ProcessResult
 from mueta.engine.musicbrainz import MusicBrainzService
+from mueta.engine.semantic import SemanticAnalyzer
 from mueta.engine.tagger import TaggerService
 from mueta.utils.errors import translate_http_error
 
@@ -33,6 +34,7 @@ class MetaPipeline:
         self.tagger = TaggerService()
         self.cover = CoverService()
         self.analyzer = AudioAnalyzer()
+        self.semantic = SemanticAnalyzer()
 
     def process_file(self, file_path: Path, options: ProcessOptions) -> ProcessResult:
         """
@@ -294,6 +296,25 @@ class MetaPipeline:
                     metadata.loudness_lufs = analysis_meta.loudness_lufs
                 if analysis_meta.danceability:
                     metadata.danceability = analysis_meta.danceability
+
+            # Step 5c: Semantic Analysis (Genre/Mood)
+            if options.analyze or options.get_genre:
+                if metadata.artist and metadata.title:
+                    logger.info(f"Analyzing semantic features for: {metadata.title} - {metadata.artist}")
+                    # Pass audio file path for ML fallback when Last.fm returns empty
+                    semantic_data = self.semantic.analyze(
+                        metadata.artist, 
+                        metadata.title,
+                        audio_file=file_path
+                    )
+
+                    if semantic_data["genres"]:
+                        metadata.genres = semantic_data["genres"]
+                        metadata.genre = semantic_data["genres"][0] # Primary genre
+
+                    if semantic_data["moods"]:
+                        metadata.moods = semantic_data["moods"]
+                        metadata.mood = semantic_data["moods"][0] # Primary mood
 
             # Step 6: Write metadata to file
             self.tagger.write_metadata(file_path, metadata)

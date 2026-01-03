@@ -14,6 +14,20 @@ api_secret = ""
 enable = true
 cache_ttl = 604800
 
+[ml]
+# Enable ML-based genre/mood prediction as fallback when Last.fm returns empty
+enable = true
+# Custom model directory (default: ~/.mueta/models/)
+# model_dir = ""
+# Minimum probability threshold for genre prediction (0.0 - 1.0)
+genre_threshold = 0.1
+# Minimum probability threshold for mood prediction (0.0 - 1.0)
+mood_threshold = 0.3
+# Maximum number of genres to return
+max_genres = 5
+# Maximum number of moods to return
+max_moods = 3
+
 [retry]
 max_retries = 3
 base_delay = 1.0

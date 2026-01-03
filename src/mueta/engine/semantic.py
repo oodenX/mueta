@@ -11,6 +11,23 @@ from mueta.core import settings
 logger = logging.getLogger(__name__)
 console = Console()
 
+# Lazy import ML predictor to avoid loading TensorFlow on startup
+_ml_predictor = None
+
+def get_ml_predictor():
+    """Get or create the ML predictor (lazy loading)."""
+    global _ml_predictor
+    if _ml_predictor is None and settings.ml.enable:
+        try:
+            from mueta.engine.ml import MLPredictor, ModelManager
+            model_dir = Path(settings.ml.model_dir) if settings.ml.model_dir else None
+            model_manager = ModelManager(model_dir=model_dir)
+            _ml_predictor = MLPredictor(model_manager=model_manager)
+        except ImportError as e:
+            logger.warning(f"ML predictor not available: {e}")
+    return _ml_predictor
+
+
 class SemanticAnalyzer:
     # Analyzes semantic information (Genre, Mood) using Last.fm API and taxonomy mapping.
 
@@ -48,8 +65,76 @@ class SemanticAnalyzer:
             logger.error(f"Failed to load taxonomy: {e}")
             return {"genres": {}, "moods": {}}
 
-    def analyze(self, artist: str, title: str) -> Dict[str, List[str]]:
-        # Analyze track to find genres and moods.
+    def analyze(
+        self, 
+        artist: str, 
+        title: str, 
+        audio_file: Optional[Path | str] = None
+    ) -> Dict[str, List[str]]:
+        """Analyze track to find genres and moods.
+        
+        Uses Last.fm API as the primary source. If Last.fm returns empty results
+        and an audio file is provided, falls back to ML-based prediction.
+        
+        Args:
+            artist: Artist name for Last.fm lookup.
+            title: Track title for Last.fm lookup.
+            audio_file: Optional path to audio file for ML fallback.
+            
+        Returns:
+            Dict with 'genres' and 'moods' lists.
+        """
+        result = {
+            "genres": [],
+            "moods": []
+        }
+
+        # Try Last.fm first
+        lastfm_result = self._analyze_lastfm(artist, title)
+        result["genres"] = lastfm_result["genres"]
+        result["moods"] = lastfm_result["moods"]
+
+        # ML Fallback: If Last.fm didn't find genres/moods and we have an audio file
+        if audio_file and settings.ml.enable:
+            ml_predictor = get_ml_predictor()
+            
+            if ml_predictor and ml_predictor.is_available():
+                # Fallback for genres
+                if not result["genres"]:
+                    logger.info(f"Last.fm returned no genres, trying ML fallback...")
+                    ml_genres = ml_predictor.predict_genre(
+                        audio_file,
+                        top_k=settings.ml.max_genres,
+                        threshold=settings.ml.genre_threshold
+                    )
+                    if ml_genres:
+                        result["genres"] = ml_genres
+                        logger.info(f"ML genre prediction: {ml_genres}")
+                
+                # Fallback for moods
+                if not result["moods"]:
+                    logger.info(f"Last.fm returned no moods, trying ML fallback...")
+                    ml_moods = ml_predictor.predict_mood(
+                        audio_file,
+                        top_k=settings.ml.max_moods,
+                        threshold=settings.ml.mood_threshold
+                    )
+                    if ml_moods:
+                        result["moods"] = ml_moods
+                        logger.info(f"ML mood prediction: {ml_moods}")
+
+        return result
+
+    def _analyze_lastfm(self, artist: str, title: str) -> Dict[str, List[str]]:
+        """Analyze track using Last.fm API.
+        
+        Args:
+            artist: Artist name.
+            title: Track title.
+            
+        Returns:
+            Dict with 'genres' and 'moods' lists.
+        """
         result = {
             "genres": [],
             "moods": []
@@ -88,7 +173,7 @@ class SemanticAnalyzer:
             result["genres"] = sorted(list(found_genres))
             result["moods"] = sorted(list(found_moods))
 
-            logger.info(f"Semantic analysis for '{title} - {artist}': Genres={result['genres']}, Moods={result['moods']}")
+            logger.info(f"Last.fm analysis for '{title} - {artist}': Genres={result['genres']}, Moods={result['moods']}")
 
         except pylast.WSError as e:
             if e.status == "6": # Invalid parameters (e.g. track not found)
@@ -96,6 +181,30 @@ class SemanticAnalyzer:
             else:
                 logger.warning(f"Last.fm API error: {e}")
         except Exception as e:
-            logger.error(f"Unexpected error during semantic analysis: {e}")
+            logger.error(f"Unexpected error during Last.fm analysis: {e}")
+
+        return result
+
+    def analyze_audio_only(self, audio_file: Path | str) -> Dict[str, List[str]]:
+        """Analyze audio file using only ML prediction (no API lookup).
+        
+        Args:
+            audio_file: Path to audio file.
+            
+        Returns:
+            Dict with 'genres' and 'moods' lists.
+        """
+        result = {
+            "genres": [],
+            "moods": []
+        }
+
+        if not settings.ml.enable:
+            return result
+
+        ml_predictor = get_ml_predictor()
+        if ml_predictor and ml_predictor.is_available():
+            result = ml_predictor.predict_all(audio_file)
+            logger.info(f"ML-only analysis: Genres={result['genres']}, Moods={result['moods']}")
 
         return result

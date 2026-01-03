@@ -11,6 +11,15 @@ class LastFmSettings(BaseSettings):
     enable: bool = False
     cache_ttl: int = 604800
 
+class MLSettings(BaseSettings):
+    """Machine Learning model settings."""
+    enable: bool = True  # Enable ML-based genre/mood prediction as fallback
+    model_dir: str = ""  # Custom model directory (default: ~/.mueta/models/)
+    genre_threshold: float = 0.1  # Minimum probability threshold for genre prediction
+    mood_threshold: float = 0.3  # Minimum probability threshold for mood prediction
+    max_genres: int = 5  # Maximum number of genres to return
+    max_moods: int = 3  # Maximum number of moods to return
+
 class Settings(BaseSettings):
     app_name: str = "Mueta"
     debug: bool = False
@@ -20,6 +29,7 @@ class Settings(BaseSettings):
     genius_api_key: str | None = None
 
     lastfm: LastFmSettings = LastFmSettings()
+    ml: MLSettings = MLSettings()
 
     # Retry configuration
     max_retries: int = 3
@@ -73,6 +83,14 @@ class Settings(BaseSettings):
                 # Handle Last.fm nested config
                 if "lastfm" in config_data:
                     settings_dict["lastfm"] = LastFmSettings(**config_data["lastfm"])
+
+                # Handle ML nested config
+                if "ml" in config_data:
+                    ml_config = config_data["ml"].copy()
+                    # Expand model_dir path if specified
+                    if "model_dir" in ml_config and ml_config["model_dir"]:
+                        ml_config["model_dir"] = cls._expand_path(ml_config["model_dir"])
+                    settings_dict["ml"] = MLSettings(**ml_config)
 
                 # Expand paths with ~ to absolute paths
                 if "audio_save_dir" in settings_dict:
