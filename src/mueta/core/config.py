@@ -3,6 +3,13 @@ from tomllib import loads
 from pathlib import Path
 from pydantic_settings import BaseSettings
 import platformdirs
+import os
+
+class LastFmSettings(BaseSettings):
+    api_key: str = ""
+    api_secret: str = ""
+    enable: bool = False
+    cache_ttl: int = 604800
 
 class Settings(BaseSettings):
     app_name: str = "Mueta"
@@ -11,6 +18,8 @@ class Settings(BaseSettings):
     lyrics_save_dir : str
     acoustid_api_key: str
     genius_api_key: str | None = None
+
+    lastfm: LastFmSettings = LastFmSettings()
 
     # Retry configuration
     max_retries: int = 3
@@ -22,6 +31,13 @@ class Settings(BaseSettings):
 
     @staticmethod
     def _get_config_path() -> Path:
+        # Check environment variable first
+        env_config = os.environ.get("MUETA_CONFIG_PATH")
+        if env_config:
+            path = Path(env_config)
+            if path.exists():
+                return path
+
         dev_config = Path(__file__).resolve().parents[3] / "config.toml"
         if dev_config.exists():
             return dev_config
@@ -32,7 +48,7 @@ class Settings(BaseSettings):
 
     @staticmethod
     def _expand_path(path_str: str) -> str:
-        """Expand ~ and environment variables in path."""
+        # Expand ~ and environment variables in path.
         return str(Path(path_str).expanduser().resolve())
 
     @classmethod
@@ -53,6 +69,10 @@ class Settings(BaseSettings):
                     settings_dict.update(config_data["retry"])
                 if "processing" in config_data:
                     settings_dict.update(config_data["processing"])
+
+                # Handle Last.fm nested config
+                if "lastfm" in config_data:
+                    settings_dict["lastfm"] = LastFmSettings(**config_data["lastfm"])
 
                 # Expand paths with ~ to absolute paths
                 if "audio_save_dir" in settings_dict:

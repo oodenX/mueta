@@ -3,10 +3,16 @@ audio_save_dir = "~/.mueta/audio"
 lyrics_save_dir = "~/.mueta/lyrics"
 
 [acoustid]
-acoustid_api_key = ""
+acoustid_api_key = "9JrlStLGOy"
 
 [genius]
 genius_api_key = ""
+
+[lastfm]
+api_key = "acb2d32263f80a9d9668056fd371e431"
+api_secret = ""
+enable = true
+cache_ttl = 604800
 
 [retry]
 max_retries = 3
@@ -14,4 +20,4 @@ base_delay = 1.0
 max_delay = 30.0
 
 [processing]
-default_workers = 3
+default_workers = 12
