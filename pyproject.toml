@@ -1,12 +1,13 @@
 [project]
 name = "mueta"
-version = "0.1.0"
+version = "0.2.0"
 description = "Mueta —— Music meta auto to get"
 readme = "README.md"
 requires-python = ">=3.12"
 authors = [{ name = "oodenX", email = "ven3428set@163.com"}]
 dependencies = [
     "click>=8.3.1",
+    "essentia>=2.1b5",
     "httpx>=0.28.1",
     "loguru>=0.7.3",
     "mutagen>=1.47.0",

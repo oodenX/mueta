@@ -1,29 +1,41 @@
 # src/mueta/cli/commands.py
 """Mueta CLI commands."""
-import typer
+
 from pathlib import Path
-from typing_extensions import Annotated
-from rich.console import Console
-from rich.prompt import Prompt
-from rich.panel import Panel
+
+import typer
 from rich import print as rprint
+from rich.console import Console
+from rich.panel import Panel
+from rich.prompt import Prompt
+from typing_extensions import Annotated
+
 from mueta.cli.completion import Completer
 
 __version__ = "0.1.0"
+
 
 def version_callback(value: bool):
     if value:
         rprint(f"[bold cyan]Mueta[/bold cyan] version [green]{__version__}[/green]")
         raise typer.Exit()
 
+
 app = typer.Typer(rich_markup_mode="rich", help="Mueta CLI Application")
 console = Console()
+
 
 @app.callback()
 def main(
     version: Annotated[
         bool,
-        typer.Option("--version", "-v", callback=version_callback, is_eager=True, help="Show version and exit")
+        typer.Option(
+            "--version",
+            "-v",
+            callback=version_callback,
+            is_eager=True,
+            help="Show version and exit",
+        ),
     ] = False,
 ):
     """Mueta - Music metadata auto getter"""
@@ -33,9 +45,10 @@ def main(
 @app.command(rich_help_panel="General Commands")
 def init():
     """Initialize mueta and configure basic information (API_KEY, storage paths, etc.)"""
+    import httpx
+
     from mueta.core.config import Settings
     from mueta.utils.system import check_fpcalc
-    import httpx
 
     console.print(
         Panel.fit(
@@ -54,7 +67,7 @@ def init():
         continue_anyway = Prompt.ask(
             "\n是否继续配置？(稍后安装 fpcalc 也可以正常使用)",
             choices=["y", "n"],
-            default="y"
+            default="y",
         )
 
         if continue_anyway.lower() != "y":
@@ -101,7 +114,7 @@ def init():
             "client": acoustid_key,
             "meta": "recordings",
             "duration": "1",
-            "fingerprint": "AQABEUmUaEmoSBGmQ"  # Minimal test fingerprint
+            "fingerprint": "AQABEUmUaEmoSBGmQ",  # Minimal test fingerprint
         }
         response = httpx.get(test_url, params=params, timeout=10.0)
 
@@ -135,7 +148,7 @@ lyrics_save_dir = "{lyrics_dir}"
 acoustid_api_key = "{acoustid_key}"
 
 [genius]
-genius_api_key = "{genius_key or ''}"
+genius_api_key = "{genius_key or ""}"
 
 [retry]
 max_retries = 3
@@ -162,9 +175,10 @@ default_workers = 3
 @app.command(rich_help_panel="General Commands")
 def config():
     """View or edit mueta configuration file."""
-    from mueta.core.config import Settings
-    import subprocess
     import platform
+    import subprocess
+
+    from mueta.core.config import Settings
 
     config_path = Settings._get_config_path()
 
@@ -182,11 +196,7 @@ def config():
     )
 
     # Ask if user wants to edit
-    edit = Prompt.ask(
-        "\n是否打开编辑器编辑配置文件？",
-        choices=["y", "n"],
-        default="n"
-    )
+    edit = Prompt.ask("\n是否打开编辑器编辑配置文件？", choices=["y", "n"], default="n")
 
     if edit.lower() == "y":
         # Detect platform and open editor
@@ -201,7 +211,10 @@ def config():
                 editors = ["nano", "vi", "vim", "gedit", "kate"]
                 editor = None
                 for ed in editors:
-                    if subprocess.run(["which", ed], capture_output=True).returncode == 0:
+                    if (
+                        subprocess.run(["which", ed], capture_output=True).returncode
+                        == 0
+                    ):
                         editor = ed
                         break
 
@@ -232,9 +245,7 @@ def cache_clean():
 
     # Confirm deletion
     confirm = Prompt.ask(
-        "确认清空缓存？(此操作不可恢复)",
-        choices=["y", "n"],
-        default="n"
+        "确认清空缓存？(此操作不可恢复)", choices=["y", "n"], default="n"
     )
 
     if confirm.lower() == "y":
@@ -262,9 +273,10 @@ def view_meta(
     ] = False,
 ):
     """View all metadata properties of an audio file."""
-    from mueta.engine.tagger import TaggerService
-    from mueta.utils.display import extract_cover_from_file, display_cover_art
     from rich.table import Table
+
+    from mueta.engine.tagger import TaggerService
+    from mueta.utils.display import display_cover_art, extract_cover_from_file
 
     tagger = TaggerService()
     file_path = Path(file)
@@ -330,6 +342,7 @@ def view_meta(
         ("copyright", "Copyright"),
         ("duration", "Duration (s)"),
         ("bpm", "BPM"),
+        ("key", "Key"),
         # MusicBrainz IDs
         ("mbid", "Recording MBID"),
         ("release_mbid", "Release MBID"),
@@ -352,7 +365,101 @@ def view_meta(
     console.print(table)
 
 
-@app.command(rich_help_panel="General Commands")
+@app.command(rich_help_panel="Analysis Commands")
+def analyze(
+    path: Annotated[
+        Path,
+        typer.Argument(
+            exists=True,
+            help="Path to audio file or directory",
+            resolve_path=True,
+        ),
+    ],
+    recursive: Annotated[
+        bool,
+        typer.Option("--recursive", "-r", help="Recursively process directories"),
+    ] = False,
+    force: Annotated[
+        bool,
+        typer.Option("--force", "-f", help="Force re-analysis even if tags exist"),
+    ] = False,
+):
+    """
+    Analyze audio files for BPM, Key, and other features.
+    """
+    from mueta.engine.analysis import AudioAnalyzer
+    from mueta.engine.tagger import TaggerService
+
+    console.print(f"[bold cyan]Analyzing audio in:[/bold cyan] {path}")
+
+    tagger = TaggerService()
+    analyzer = AudioAnalyzer()
+
+    files_to_process = []
+    if path.is_file():
+        files_to_process.append(path)
+    elif path.is_dir():
+        pattern = "**/*" if recursive else "*"
+        for p in path.glob(pattern):
+            if p.is_file():
+                files_to_process.append(p)
+
+    processed_count = 0
+    skipped_count = 0
+    error_count = 0
+
+    with console.status("[bold green]Analyzing files...[/bold green]") as status:
+        for file_path in files_to_process:
+            is_valid, _ = tagger.validate_audio_file(file_path)
+            if not is_valid:
+                continue
+
+            status.update(f"Processing {file_path.name}...")
+
+            try:
+                # Check if already analyzed
+                if not force:
+                    current_meta = tagger.read_metadata(file_path)
+                    if current_meta.bpm and current_meta.key:
+                        console.print(
+                            f"[dim]Skipping {file_path.name} (already analyzed)[/dim]"
+                        )
+                        skipped_count += 1
+                        continue
+
+                # Analyze
+                analysis_meta = analyzer.analyze(file_path)
+
+                if not analysis_meta.bpm and not analysis_meta.key:
+                    console.print(
+                        f"[yellow]No features extracted for {file_path.name}[/yellow]"
+                    )
+                    error_count += 1
+                    continue
+
+                # Write tags
+                tagger.write_metadata(file_path, analysis_meta)
+
+                console.print(
+                    f"[green]Analyzed {file_path.name}:[/green] "
+                    f"BPM={analysis_meta.bpm}, Key={analysis_meta.key} {analysis_meta.scale or ''}"
+                )
+                processed_count += 1
+
+            except Exception as e:
+                console.print(f"[red]Error analyzing {file_path.name}: {e}[/red]")
+                error_count += 1
+
+    console.print(
+        Panel(
+            f"Processed: {processed_count}\nSkipped: {skipped_count}\nErrors: {error_count}",
+            title="Analysis Complete",
+            border_style="green",
+        )
+    )
+
+
+@app.command(rich_help_panel="Metadata Commands")
 def get_meta(
     files: Annotated[
         list[str],
@@ -371,28 +478,58 @@ def get_meta(
         bool, typer.Option("--cover", "-c", help="Download and embed cover art")
     ] = True,
     reserve: Annotated[
-        bool, typer.Option("--reserve", "-r", help="Keep original file (copy instead of move)")
+        bool,
+        typer.Option(
+            "--reserve", "-r", help="Keep original file (copy instead of move)"
+        ),
     ] = False,
     workers: Annotated[
         int, typer.Option("--workers", "-w", help="Number of parallel workers")
     ] = 3,
     interactive: Annotated[
-        bool, typer.Option("--interactive", "-i", help="Interactive mode (ask user when unsure)")
+        bool,
+        typer.Option(
+            "--interactive", "-i", help="Interactive mode (ask user when unsure)"
+        ),
     ] = False,
     skip_existing: Annotated[
-        bool, typer.Option("--skip-existing", "-s", help="Skip files that already have complete metadata")
+        bool,
+        typer.Option(
+            "--skip-existing",
+            "-s",
+            help="Skip files that already have complete metadata",
+        ),
+    ] = False,
+    analyze: Annotated[
+        bool,
+        typer.Option(
+            "--analyze",
+            "-a",
+            help="Analyze audio features (BPM, Key, etc.)",
+        ),
     ] = False,
 ):
     """Get metadata for one or multiple audio files with optional lyrics."""
-    from mueta.engine.pipeline import MetaPipeline, ProcessOptions
-    from rich.progress import Progress, BarColumn, TaskProgressColumn, TimeRemainingColumn, TextColumn, SpinnerColumn
     from concurrent.futures import ThreadPoolExecutor, as_completed
     from threading import Lock
+
+    from rich.progress import (
+        BarColumn,
+        Progress,
+        SpinnerColumn,
+        TaskProgressColumn,
+        TextColumn,
+        TimeRemainingColumn,
+    )
+
+    from mueta.engine.pipeline import MetaPipeline, ProcessOptions
     from mueta.engine.tagger import TaggerService
 
     if interactive:
         if workers > 1:
-            console.print("[yellow]⚠️ Interactive mode enabled: Forcing workers=1 to prevent console conflicts[/yellow]")
+            console.print(
+                "[yellow]⚠️ Interactive mode enabled: Forcing workers=1 to prevent console conflicts[/yellow]"
+            )
             workers = 1
 
     options = ProcessOptions(
@@ -401,6 +538,7 @@ def get_meta(
         embed_cover=cover,
         reserve_original=reserve,
         interactive=interactive,
+        analyze=analyze,
     )
 
     # Filter out non-existent files
@@ -421,7 +559,9 @@ def get_meta(
             if skip_existing:
                 existing_meta = tagger.read_metadata(file_path)
                 if existing_meta and existing_meta.title and existing_meta.artist:
-                    console.print(f"[dim]⏭️  Skipping (has metadata): {file_path.name}[/dim]")
+                    console.print(
+                        f"[dim]⏭️  Skipping (has metadata): {file_path.name}[/dim]"
+                    )
                     continue
 
             valid_files.append(file_path)
@@ -432,7 +572,9 @@ def get_meta(
         console.print("[red]❌ No valid audio files to process[/red]")
         raise typer.Exit(1)
 
-    console.print(f"[cyan]📁 Processing {len(valid_files)} audio files with {workers} workers[/cyan]\n")
+    console.print(
+        f"[cyan]📁 Processing {len(valid_files)} audio files with {workers} workers[/cyan]\n"
+    )
 
     # Thread-safe counters
     lock = Lock()
@@ -448,7 +590,9 @@ def get_meta(
 
         try:
             # Update progress for this task
-            progress.update(task_id, description=f"[cyan]🎵 {file_path.name}[/cyan]", started=True)
+            progress.update(
+                task_id, description=f"[cyan]🎵 {file_path.name}[/cyan]", started=True
+            )
 
             result = pipeline.process_file(file_path, options)
 
@@ -462,7 +606,11 @@ def get_meta(
                     status_text = f"[yellow]⚠️ {file_path.name}[/yellow]: {result.error}"
 
                 # Update overall progress
-                progress.update(overall_task, completed=completed, description=f"[bold]Overall Progress[/bold] ({completed}/{len(valid_files)})")
+                progress.update(
+                    overall_task,
+                    completed=completed,
+                    description=f"[bold]Overall Progress[/bold] ({completed}/{len(valid_files)})",
+                )
                 progress.update(task_id, description=status_text, completed=1)
 
             return result.success, status_text
@@ -472,7 +620,11 @@ def get_meta(
                 completed += 1
                 failed_count += 1
                 status_text = f"[red]❌ {file_path.name}[/red]: {str(e)}"
-                progress.update(overall_task, completed=completed, description=f"[bold]Overall Progress[/bold] ({completed}/{len(valid_files)})")
+                progress.update(
+                    overall_task,
+                    completed=completed,
+                    description=f"[bold]Overall Progress[/bold] ({completed}/{len(valid_files)})",
+                )
                 progress.update(task_id, description=status_text, completed=1)
             return False, status_text
 
@@ -488,23 +640,23 @@ def get_meta(
         # Overall progress task
         overall_task = progress.add_task(
             f"[bold]Overall Progress[/bold] (0/{len(valid_files)})",
-            total=len(valid_files)
+            total=len(valid_files),
         )
 
         # Create individual tasks for each file
         file_tasks = {}
         for file_path in valid_files:
             task_id = progress.add_task(
-                f"[dim]⏳ Waiting: {file_path.name}[/dim]",
-                total=1,
-                start=False
+                f"[dim]⏳ Waiting: {file_path.name}[/dim]", total=1, start=False
             )
             file_tasks[file_path] = task_id
 
         # Process files with thread pool
         with ThreadPoolExecutor(max_workers=workers) as executor:
             futures = {
-                executor.submit(process_single_file, file_path, file_tasks[file_path]): file_path
+                executor.submit(
+                    process_single_file, file_path, file_tasks[file_path]
+                ): file_path
                 for file_path in valid_files
             }
 
@@ -513,12 +665,12 @@ def get_meta(
                 future.result()  # This will raise exceptions if any occurred
 
     # Summary
-    console.print(f"\n[bold cyan]{'='*60}[/bold cyan]")
+    console.print(f"\n[bold cyan]{'=' * 60}[/bold cyan]")
     console.print(f"[bold]📊 Summary:[/bold]")
     console.print(f"  [green]✅ Successful:[/green] {success_count}")
     console.print(f"  [yellow]⚠️ Failed:[/yellow] {failed_count}")
     console.print(f"  [cyan]📁 Total:[/cyan] {len(valid_files)}")
-    console.print(f"[bold cyan]{'='*60}[/bold cyan]")
+    console.print(f"[bold cyan]{'=' * 60}[/bold cyan]")
 
 
 @app.command(rich_help_panel="General Commands")
@@ -540,16 +692,35 @@ def get_meta_from_folder(
         bool, typer.Option("--cover", "-c", help="Download and embed cover art")
     ] = True,
     reserve: Annotated[
-        bool, typer.Option("--reserve", "-r", help="Keep original files (copy instead of move)")
+        bool,
+        typer.Option(
+            "--reserve", "-r", help="Keep original files (copy instead of move)"
+        ),
     ] = False,
     workers: Annotated[
         int, typer.Option("--workers", "-w", help="Number of parallel workers")
     ] = 3,
     interactive: Annotated[
-        bool, typer.Option("--interactive", "-i", help="Interactive mode (ask user when unsure)")
+        bool,
+        typer.Option(
+            "--interactive", "-i", help="Interactive mode (ask user when unsure)"
+        ),
     ] = False,
     skip_existing: Annotated[
-        bool, typer.Option("--skip-existing", "-s", help="Skip files that already have complete metadata")
+        bool,
+        typer.Option(
+            "--skip-existing",
+            "-s",
+            help="Skip files that already have complete metadata",
+        ),
+    ] = False,
+    analyze: Annotated[
+        bool,
+        typer.Option(
+            "--analyze",
+            "-a",
+            help="Analyze audio features (BPM, Key, etc.)",
+        ),
     ] = False,
 ):
     """Get metadata for all audio files in a folder with optional lyrics."""
@@ -569,7 +740,19 @@ def get_meta_from_folder(
         console.print(f"[yellow]⚠️ No audio files found in: {folder}[/yellow]")
         raise typer.Exit(0)
 
-    console.print(f"[bold cyan]📁 Found {len(audio_files)} audio files in folder[/bold cyan]\n")
+    console.print(
+        f"[bold cyan]📁 Found {len(audio_files)} audio files in folder[/bold cyan]\n"
+    )
 
     # Reuse get_meta logic with same worker count
-    get_meta(files=audio_files, lyric=lyric, embedded=embedded, cover=cover, reserve=reserve, workers=workers, interactive=interactive, skip_existing=skip_existing)
+    get_meta(
+        files=audio_files,
+        lyric=lyric,
+        embedded=embedded,
+        cover=cover,
+        reserve=reserve,
+        workers=workers,
+        interactive=interactive,
+        skip_existing=skip_existing,
+        analyze=analyze,
+    )
