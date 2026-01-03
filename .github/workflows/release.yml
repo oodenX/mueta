@@ -3,7 +3,7 @@ name: Build Release Packages
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
     branches:
       - develop
   workflow_dispatch:
@@ -20,7 +20,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: "3.12"
 
       - name: Get Version
         id: get_version
@@ -34,7 +34,8 @@ jobs:
       - name: Install dependencies
         run: |
           pip install pyinstaller
-          pip install -e .
+          pip install .
+          pip list
 
       - name: Build with PyInstaller
         run: |
@@ -49,7 +50,7 @@ jobs:
       - name: Create packages
         run: |
           mkdir -p release
-          
+
           # Create tar.gz
           tar -czvf release/mueta-${VERSION}-linux-x86_64.tar.gz -C dist mueta
 
@@ -91,7 +92,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: "3.12"
 
       - name: Get Version
         shell: bash
@@ -105,7 +106,8 @@ jobs:
       - name: Install dependencies
         run: |
           pip install pyinstaller
-          pip install -e .
+          pip install .
+          pip list
 
       - name: Build with PyInstaller
         run: |
@@ -119,7 +121,7 @@ jobs:
 
           # Create ZIP
           Compress-Archive -Path dist\mueta.exe -DestinationPath release\mueta-$version-windows-x86_64.zip
-          
+
           # Copy EXE for direct upload
           Copy-Item dist\mueta.exe -Destination release\mueta.exe
 
@@ -137,7 +139,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: "3.12"
 
       - name: Get Version
         run: |
@@ -150,7 +152,8 @@ jobs:
       - name: Install dependencies
         run: |
           pip install pyinstaller
-          pip install -e .
+          pip install .
+          pip list
           brew install create-dmg
 
       - name: Build with PyInstaller
@@ -160,7 +163,7 @@ jobs:
       - name: Create DMG
         run: |
           mkdir -p release
-          
+
           # Create app bundle
           mkdir -p "dist/Mueta.app/Contents/MacOS"
           cp dist/mueta "dist/Mueta.app/Contents/MacOS/"

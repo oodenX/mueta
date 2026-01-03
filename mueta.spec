@@ -14,6 +14,8 @@ a = Analysis(
         'mueta.core',
         'mueta.engine',
         'mueta.utils',
+        'essentia',
+        'essentia.standard',
     ],
     hookspath=[],
     hooksconfig={},
