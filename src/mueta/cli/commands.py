@@ -500,6 +500,14 @@ def get_meta(
             help="Skip files that already have complete metadata",
         ),
     ] = False,
+    analyze: Annotated[
+        bool,
+        typer.Option(
+            "--analyze",
+            "-a",
+            help="Analyze audio features (BPM, Key, etc.)",
+        ),
+    ] = False,
 ):
     """Get metadata for one or multiple audio files with optional lyrics."""
     from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -530,6 +538,7 @@ def get_meta(
         embed_cover=cover,
         reserve_original=reserve,
         interactive=interactive,
+        analyze=analyze,
     )
 
     # Filter out non-existent files
@@ -705,6 +714,14 @@ def get_meta_from_folder(
             help="Skip files that already have complete metadata",
         ),
     ] = False,
+    analyze: Annotated[
+        bool,
+        typer.Option(
+            "--analyze",
+            "-a",
+            help="Analyze audio features (BPM, Key, etc.)",
+        ),
+    ] = False,
 ):
     """Get metadata for all audio files in a folder with optional lyrics."""
     folder_path = Path(folder)
@@ -737,4 +754,5 @@ def get_meta_from_folder(
         workers=workers,
         interactive=interactive,
         skip_existing=skip_existing,
+        analyze=analyze,
     )

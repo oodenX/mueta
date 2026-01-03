@@ -104,6 +104,7 @@ class ProcessOptions(BaseModel):
     download_lyrics: bool = False
     embed_lyrics: bool = False
     embed_cover: bool = True
+    analyze: bool = False  # If True, perform audio analysis (BPM, Key, etc.)
     reserve_original: bool = (
         False  # If True, keep original file and copy; if False, move file
     )
