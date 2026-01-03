@@ -86,6 +86,23 @@ mueta init
 ```
 然后会引导用户输入 **AcoustID API key** 等等信息。
 
+### 音频分析 (BPM/Key)
+
+![Mueta Analyze Demo](demo/analyze.gif)
+
+v0.2.0 新增功能。使用 Essentia 算法分析音频的 BPM (速度)、Key (调性) 和响度等特征，并写入文件标签。
+
+```bash
+mueta analyze [OPTIONS] PATH
+```
+
+**参数**:
+- `PATH`: 文件或文件夹路径。
+
+**选项**:
+- `-r --recursive`: 递归处理子文件夹。
+- `-f --force`: 强制重新分析（即使已有 BPM/Key 标签）。
+
 ### 获取一个音频的所有元属性
 
 ![Mueta View Meta Demo](demo/view_meta.gif)
@@ -117,6 +134,7 @@ mueta get-meta [OPTIONS] FILES
 - `-c --cover`: 是否下载封面嵌入音频，默认打开。
 - `-w --workers`: 并行数，默认为3，可以根据自己的需求调整，要求为整数。
 - `-i --interactive`: 交互式模式，当有多个匹配结果时手动选择（此模式下 workers 强制为 1）。
+- `-a --analyze`: 同时进行音频分析 (BPM/Key)。
 
 ![Mueta Interactive Demo](demo/interactive.gif)
 
@@ -135,6 +153,7 @@ mueta get-meta-from-folder [OPTIONS] FOLDER
 - `-r --reserve`: 保留原文件（复制而不是移动）。
 - `-w --workers`: 并行数，默认为3，可以根据自己的需求调整，要求为整数。
 - `-i --interactive`: 交互式模式，当有多个匹配结果时手动选择（此模式下 workers 强制为 1）。
+- `-a --analyze`: 同时进行音频分析 (BPM/Key)。
 
 ## 支持的格式
 - MP3
