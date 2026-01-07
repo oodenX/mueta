@@ -5,6 +5,6 @@
 - [ ] Task: Conductor - User Manual Verification 'Fix Configuration Loading' (Protocol in workflow.md)
 
 ## Phase 2: Verification
-- [ ] Task: Create a reproduction script/test that runs the app without a config file.
-- [ ] Task: Verify `mueta init` works as expected.
+- [x] Task: Create a reproduction script/test that runs the app without a config file. 1861941
+- [x] Task: Verify `mueta init` works as expected. 8f88aab
 - [ ] Task: Conductor - User Manual Verification 'Verification' (Protocol in workflow.md)
