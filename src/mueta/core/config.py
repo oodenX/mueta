@@ -20,6 +20,14 @@ class MLSettings(BaseSettings):
     max_genres: int = 5  # Maximum number of genres to return
     max_moods: int = 3  # Maximum number of moods to return
 
+class LLMSettings(BaseSettings):
+    """LLM provider settings."""
+    enable: bool = False
+    provider: str = "openai"  # openai, claude, etc.
+    api_key: str = ""
+    model: str = "gpt-4o-mini"
+    prompt_template: str | None = None # Custom prompt template
+
 class Settings(BaseSettings):
     app_name: str = "Mueta"
     debug: bool = False
@@ -30,6 +38,7 @@ class Settings(BaseSettings):
 
     lastfm: LastFmSettings = LastFmSettings()
     ml: MLSettings = MLSettings()
+    llm: LLMSettings = LLMSettings()
 
     # Retry configuration
     max_retries: int = 3
@@ -91,6 +100,10 @@ class Settings(BaseSettings):
                     if "model_dir" in ml_config and ml_config["model_dir"]:
                         ml_config["model_dir"] = cls._expand_path(ml_config["model_dir"])
                     settings_dict["ml"] = MLSettings(**ml_config)
+
+                # Handle LLM nested config
+                if "llm" in config_data:
+                    settings_dict["llm"] = LLMSettings(**config_data["llm"])
 
                 # Expand paths with ~ to absolute paths
                 if "audio_save_dir" in settings_dict:
