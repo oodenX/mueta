@@ -2,7 +2,7 @@
 
 ## Phase 1: Infrastructure and Configuration
 - [x] Task: Define Pydantic models for semantic results (Genre, Mood) in `src/mueta/engine/models.py`. 2ca0041
-- [ ] Task: Update `src/mueta/core/config.py` to include LLM provider settings (API Key, Model, Provider).
+- [x] Task: Update `src/mueta/core/config.py` to include LLM provider settings (API Key, Model, Provider). 4eb0077
 - [ ] Task: Conductor - User Manual Verification 'Infrastructure and Configuration' (Protocol in workflow.md)
 
 ## Phase 2: Semantic Engine Implementation
