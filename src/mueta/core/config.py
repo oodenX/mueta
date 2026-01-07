@@ -23,9 +23,9 @@ class MLSettings(BaseSettings):
 class Settings(BaseSettings):
     app_name: str = "Mueta"
     debug: bool = False
-    audio_save_dir : str
-    lyrics_save_dir : str
-    acoustid_api_key: str
+    audio_save_dir : str = str(Path.home() / ".mueta" / "audio")
+    lyrics_save_dir : str = str(Path.home() / ".mueta" / "lyrics")
+    acoustid_api_key: str = ""
     genius_api_key: str | None = None
 
     lastfm: LastFmSettings = LastFmSettings()
