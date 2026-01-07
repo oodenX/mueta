@@ -22,3 +22,6 @@ coverage.xml
 htmlcov/
 .tox/
 test_output/
+
+.gemini/
+gha-creds-*.json
