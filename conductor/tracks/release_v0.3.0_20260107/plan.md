@@ -7,10 +7,10 @@
 - [ ] Task: Conductor - User Manual Verification 'Documentation and Demos' (Protocol in workflow.md)
 
 ## Phase 2: Build Scripts and CI/CD
-- [ ] Task: Create/Update build scripts for Linux (PyInstaller + FPM for .deb/.rpm).
-- [ ] Task: Create/Update build scripts for Windows (PyInstaller + Inno Setup or simple .exe).
-- [ ] Task: Create/Update build scripts for macOS (PyInstaller + create-dmg).
-- [ ] Task: Update `.github/workflows/release.yml` to trigger on `v*` tag and execute platform-specific builds.
+- [x] Task: Create/Update build scripts for Linux (PyInstaller + FPM for .deb/.rpm). 5a58aa9
+- [x] Task: Create/Update build scripts for Windows (PyInstaller + Inno Setup or simple .exe). 5a58aa9
+- [x] Task: Create/Update build scripts for macOS (PyInstaller + create-dmg). 5a58aa9
+- [x] Task: Update `.github/workflows/release.yml` to trigger on `v*` tag and execute platform-specific builds. 5a58aa9
 - [ ] Task: Conductor - User Manual Verification 'Build Scripts and CI/CD' (Protocol in workflow.md)
 
 ## Phase 3: Tagging and Release
