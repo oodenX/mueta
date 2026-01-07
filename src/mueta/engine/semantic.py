@@ -66,21 +66,21 @@ class SemanticAnalyzer:
             return {"genres": {}, "moods": {}}
 
     def analyze(
-        self, 
-        artist: str, 
-        title: str, 
+        self,
+        artist: str,
+        title: str,
         audio_file: Optional[Path | str] = None
     ) -> Dict[str, List[str]]:
         """Analyze track to find genres and moods.
-        
-        Uses Last.fm API as the primary source. If Last.fm returns empty results
-        and an audio file is provided, falls back to ML-based prediction.
-        
+
+        Uses ML-based prediction as the primary source if an audio file is provided.
+        Falls back to Last.fm API if ML is disabled, unavailable, or returns no results.
+
         Args:
-            artist: Artist name for Last.fm lookup.
-            title: Track title for Last.fm lookup.
-            audio_file: Optional path to audio file for ML fallback.
-            
+            artist: Artist name for Last.fm lookup fallback.
+            title: Track title for Last.fm lookup fallback.
+            audio_file: Optional path to audio file for ML.
+
         Returns:
             Dict with 'genres' and 'moods' lists.
         """
@@ -89,49 +89,38 @@ class SemanticAnalyzer:
             "moods": []
         }
 
-        # Try Last.fm first
-        lastfm_result = self._analyze_lastfm(artist, title)
-        result["genres"] = lastfm_result["genres"]
-        result["moods"] = lastfm_result["moods"]
-
-        # ML Fallback: If Last.fm didn't find genres/moods and we have an audio file
+        # 1. Try ML primarily if audio file is available
         if audio_file and settings.ml.enable:
             ml_predictor = get_ml_predictor()
-            
+
             if ml_predictor and ml_predictor.is_available():
-                # Fallback for genres
-                if not result["genres"]:
-                    logger.info(f"Last.fm returned no genres, trying ML fallback...")
-                    ml_genres = ml_predictor.predict_genre(
-                        audio_file,
-                        top_k=settings.ml.max_genres,
-                        threshold=settings.ml.genre_threshold
-                    )
-                    if ml_genres:
-                        result["genres"] = ml_genres
-                        logger.info(f"ML genre prediction: {ml_genres}")
-                
-                # Fallback for moods
-                if not result["moods"]:
-                    logger.info(f"Last.fm returned no moods, trying ML fallback...")
-                    ml_moods = ml_predictor.predict_mood(
-                        audio_file,
-                        top_k=settings.ml.max_moods,
-                        threshold=settings.ml.mood_threshold
-                    )
-                    if ml_moods:
-                        result["moods"] = ml_moods
-                        logger.info(f"ML mood prediction: {ml_moods}")
+                ml_result = ml_predictor.predict_all(audio_file)
+                result["genres"] = ml_result["genres"]
+                result["moods"] = ml_result["moods"]
+
+                if result["genres"] or result["moods"]:
+                    logger.info(f"ML analysis primary: Genres={result['genres']}, Moods={result['moods']}")
+                    # If we got results from ML, we can stop here or use Last.fm as fallback for empty fields
+                    if result["genres"] and result["moods"]:
+                        return result
+
+        # 2. Fallback to Last.fm for missing attributes
+        lastfm_result = self._analyze_lastfm(artist, title)
+        
+        if not result["genres"]:
+            result["genres"] = lastfm_result["genres"]
+        if not result["moods"]:
+            result["moods"] = lastfm_result["moods"]
 
         return result
 
     def _analyze_lastfm(self, artist: str, title: str) -> Dict[str, List[str]]:
         """Analyze track using Last.fm API.
-        
+
         Args:
             artist: Artist name.
             title: Track title.
-            
+
         Returns:
             Dict with 'genres' and 'moods' lists.
         """
@@ -187,10 +176,10 @@ class SemanticAnalyzer:
 
     def analyze_audio_only(self, audio_file: Path | str) -> Dict[str, List[str]]:
         """Analyze audio file using only ML prediction (no API lookup).
-        
+
         Args:
             audio_file: Path to audio file.
-            
+
         Returns:
             Dict with 'genres' and 'moods' lists.
         """
