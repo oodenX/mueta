@@ -12,7 +12,7 @@
 - [ ] Task: Conductor - User Manual Verification 'ML Engine Refinement' (Protocol in workflow.md)
 
 ## Phase 3: Pipeline and CLI Integration
-- [ ] Task: Implement `SemanticStage` in `src/mueta/engine/pipeline.py` using `MLPredictor`.
+- [~] Task: Implement `SemanticStage` in `src/mueta/engine/pipeline.py` using `MLPredictor`.
 - [ ] Task: Update the `Tagger` in `src/mueta/engine/tagger.py` to support writing multiple Genre and Mood tags.
 - [ ] Task: Integrate `SemanticStage` into the main `MetadataPipeline`.
 - [ ] Task: Update CLI commands (`get-meta`, `get-meta-from-folder`) to ensure `--analyze` triggers semantic detection.

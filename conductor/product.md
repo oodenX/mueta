@@ -13,7 +13,7 @@ Mueta is a modern CLI application designed to automate the retrieval and managem
 - **Advanced Audio Analysis:** Integration of machine learning (Essentia) to provide technical metadata such as BPM, Key, and loudness.
 - **Modern Terminal UI:** A polished user experience utilizing `rich` for beautiful status displays, progress bars, and interactive selection.
 - **Flexible Data Sourcing:** Leveraging AcoustID, MusicBrainz, and Genius, with additional support for lyrics and unofficial APIs.
-- **AI-Powered Attributes:** Using Large Language Models (LLMs) to determine abstract attributes like Genre and Mood.
+- **AI-Powered Attributes:** Using Essentia Machine Learning models (TensorFlow) to determine abstract attributes like Genre and Mood.
 
 ## Primary Goals
 - **Effortless Automation:** To automate the tedious process of tagging large music collections at scale.
@@ -23,7 +23,7 @@ Mueta is a modern CLI application designed to automate the retrieval and managem
 ## Version Roadmap
 - **v0.1.0 (Core):** Implement basic functionality: Initialization, Metadata Display (`view-meta`), Fetching Metadata (`get-meta`), Lyrics Download, and Cover Art retrieval.
 - **v0.2.0 (Analysis):** Implement audio feature extraction for BPM and Key using Essentia.
-- **v0.3.0 (Semantic AI):** Implement abstract attribute detection for Genre and Mood using Large Language Models (LLM).
+- **v0.3.0 (Semantic ML):** Implement abstract attribute detection for Genre and Mood using Essentia TensorFlow models.
 
 ## Testing Strategy
 - **Test Dataset:** 65 diverse audio tracks located in `~/test/test_audio`.

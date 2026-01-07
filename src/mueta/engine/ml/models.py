@@ -91,7 +91,7 @@ DISCOGS400_GENRE_MAPPING = {
     "Synth-pop": "Electronic",
     "EBM": "Electronic",
     "New Wave": "Electronic",
-    
+
     # Rock genres
     "Rock": "Rock",
     "Alternative Rock": "Rock",
@@ -104,7 +104,7 @@ DISCOGS400_GENRE_MAPPING = {
     "Post-Rock": "Rock",
     "Garage Rock": "Rock",
     "Classic Rock": "Rock",
-    
+
     # Metal genres
     "Heavy Metal": "Metal",
     "Thrash": "Metal",
@@ -114,7 +114,7 @@ DISCOGS400_GENRE_MAPPING = {
     "Power Metal": "Metal",
     "Metalcore": "Metal",
     "Nu Metal": "Metal",
-    
+
     # Pop genres
     "Pop": "Pop",
     "Pop Rock": "Pop",
@@ -123,7 +123,7 @@ DISCOGS400_GENRE_MAPPING = {
     "Europop": "Pop",
     "J-Pop": "Pop",
     "K-Pop": "Pop",
-    
+
     # Hip-Hop genres
     "Hip Hop": "Hip-Hop",
     "Rap": "Hip-Hop",
@@ -131,7 +131,7 @@ DISCOGS400_GENRE_MAPPING = {
     "Boom Bap": "Hip-Hop",
     "Gangsta": "Hip-Hop",
     "Trip Hop": "Hip-Hop",
-    
+
     # R&B genres
     "Soul": "R&B",
     "Funk": "R&B",
@@ -139,7 +139,7 @@ DISCOGS400_GENRE_MAPPING = {
     "Contemporary R&B": "R&B",
     "Neo Soul": "R&B",
     "Motown": "R&B",
-    
+
     # Jazz genres
     "Jazz": "Jazz",
     "Smooth Jazz": "Jazz",
@@ -148,7 +148,7 @@ DISCOGS400_GENRE_MAPPING = {
     "Cool Jazz": "Jazz",
     "Free Jazz": "Jazz",
     "Latin Jazz": "Jazz",
-    
+
     # Classical genres
     "Classical": "Classical",
     "Baroque": "Classical",
@@ -156,7 +156,7 @@ DISCOGS400_GENRE_MAPPING = {
     "Modern Classical": "Classical",
     "Opera": "Classical",
     "Orchestral": "Classical",
-    
+
     # Folk genres
     "Folk": "Folk",
     "Acoustic": "Folk",
@@ -164,20 +164,20 @@ DISCOGS400_GENRE_MAPPING = {
     "Country": "Folk",
     "Bluegrass": "Folk",
     "Americana": "Folk",
-    
+
     # Blues genres
     "Blues": "Blues",
     "Electric Blues": "Blues",
     "Delta Blues": "Blues",
     "Blues Rock": "Blues",
-    
+
     # Reggae genres
     "Reggae": "Reggae",
     "Ska": "Reggae",
     "Dub": "Reggae",
     "Dancehall": "Reggae",
     "Rocksteady": "Reggae",
-    
+
     # Latin genres
     "Latin": "Latin",
     "Salsa": "Latin",
@@ -185,14 +185,14 @@ DISCOGS400_GENRE_MAPPING = {
     "Reggaeton": "Latin",
     "Latin Pop": "Latin",
     "Tango": "Latin",
-    
+
     # World genres
     "World": "World",
     "African": "World",
     "Celtic": "World",
     "Middle Eastern": "World",
     "Indian Classical": "World",
-    
+
     # Soundtrack
     "Soundtrack": "Soundtrack",
     "Score": "Soundtrack",
@@ -226,10 +226,10 @@ MTG_JAMENDO_MOOD_MAPPING = {
 
 class ModelManager:
     """Manages downloading and caching of Essentia TensorFlow models."""
-    
+
     def __init__(self, model_dir: Optional[Path] = None):
         """Initialize model manager.
-        
+
         Args:
             model_dir: Custom model directory. Defaults to ~/.mueta/models/
         """
@@ -237,49 +237,49 @@ class ModelManager:
             self.model_dir = Path(model_dir)
         else:
             self.model_dir = Path(platformdirs.user_data_dir("mueta")) / "models"
-        
+
         self.model_dir.mkdir(parents=True, exist_ok=True)
         self._loaded_classes: Dict[str, list] = {}
-    
+
     def get_model_path(self, model_name: str) -> Optional[Path]:
         """Get path to a model, downloading if necessary.
-        
+
         Args:
             model_name: Name of the model (e.g., 'discogs-effnet', 'genre-discogs400')
-            
+
         Returns:
             Path to the model file, or None if download failed.
         """
         if model_name not in MODELS:
             logger.error(f"Unknown model: {model_name}")
             return None
-        
+
         model_info = MODELS[model_name]
         model_path = self.model_dir / model_info["filename"]
-        
+
         if model_path.exists():
             return model_path
-        
+
         # Download model
         logger.info(f"Downloading model: {model_name} ({model_info['description']})")
-        
+
         if self._download_file(model_info["url"], model_path, model_info.get("size_mb", 0)):
             # Also download classes JSON if available
             if "classes_url" in model_info:
                 classes_path = model_path.with_suffix(".json")
                 self._download_file(model_info["classes_url"], classes_path, 0)
             return model_path
-        
+
         return None
-    
+
     def _download_file(self, url: str, dest_path: Path, size_mb: int) -> bool:
         """Download a file with progress bar.
-        
+
         Args:
             url: URL to download from.
             dest_path: Destination path.
             size_mb: Approximate size in MB (for display).
-            
+
         Returns:
             True if download succeeded.
         """
@@ -287,7 +287,7 @@ class ModelManager:
             with httpx.stream("GET", url, follow_redirects=True, timeout=120.0) as response:
                 response.raise_for_status()
                 total = int(response.headers.get("content-length", 0))
-                
+
                 with Progress(
                     SpinnerColumn(),
                     TextColumn("[bold blue]{task.description}"),
@@ -300,38 +300,38 @@ class ModelManager:
                         f"Downloading {dest_path.name}...",
                         total=total if total else None
                     )
-                    
+
                     with open(dest_path, "wb") as f:
                         for chunk in response.iter_bytes(chunk_size=8192):
                             f.write(chunk)
                             progress.update(task, advance=len(chunk))
-                
+
                 logger.info(f"Downloaded: {dest_path.name}")
                 return True
-                
+
         except Exception as e:
             logger.error(f"Failed to download {url}: {e}")
             if dest_path.exists():
                 dest_path.unlink()
             return False
-    
+
     def get_genre_classes(self) -> list:
         """Get list of genre classes for the genre model.
-        
+
         Returns:
             List of genre class names in order.
         """
         if "genre_classes" in self._loaded_classes:
             return self._loaded_classes["genre_classes"]
-        
+
         classes_path = self.model_dir / "genre_discogs400-discogs-effnet-1.json"
-        
+
         if not classes_path.exists():
             # Try to download
             model_info = MODELS.get("genre-discogs400", {})
             if "classes_url" in model_info:
                 self._download_file(model_info["classes_url"], classes_path, 0)
-        
+
         if classes_path.exists():
             import json
             with open(classes_path, "r") as f:
@@ -339,25 +339,25 @@ class ModelManager:
                 classes = data.get("classes", [])
                 self._loaded_classes["genre_classes"] = classes
                 return classes
-        
+
         return []
-    
+
     def get_mood_classes(self) -> list:
         """Get list of mood/theme classes for the mood model.
-        
+
         Returns:
             List of mood class names in order.
         """
         if "mood_classes" in self._loaded_classes:
             return self._loaded_classes["mood_classes"]
-        
+
         classes_path = self.model_dir / "mtg_jamendo_moodtheme-discogs-effnet-1.json"
-        
+
         if not classes_path.exists():
             model_info = MODELS.get("mood-mtg-jamendo", {})
             if "classes_url" in model_info:
                 self._download_file(model_info["classes_url"], classes_path, 0)
-        
+
         if classes_path.exists():
             import json
             with open(classes_path, "r") as f:
@@ -365,15 +365,15 @@ class ModelManager:
                 classes = data.get("classes", [])
                 self._loaded_classes["mood_classes"] = classes
                 return classes
-        
+
         return []
-    
+
     def ensure_models_downloaded(self, model_names: list[str]) -> bool:
         """Ensure all specified models are downloaded.
-        
+
         Args:
             model_names: List of model names to download.
-            
+
         Returns:
             True if all models are available.
         """
@@ -382,10 +382,10 @@ class ModelManager:
             if self.get_model_path(name) is None:
                 all_ok = False
         return all_ok
-    
+
     def list_available_models(self) -> Dict[str, dict]:
         """List all available models with their status.
-        
+
         Returns:
             Dict mapping model name to status info.
         """

@@ -6,6 +6,7 @@ resource/
 dist/
 data/
 .vscode/
+.zed/
 .idea/
 logs/
 test_audio/

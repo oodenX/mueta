@@ -303,7 +303,7 @@ class MetaPipeline:
                     logger.info(f"Analyzing semantic features for: {metadata.title} - {metadata.artist}")
                     # Pass audio file path for ML fallback when Last.fm returns empty
                     semantic_data = self.semantic.analyze(
-                        metadata.artist, 
+                        metadata.artist,
                         metadata.title,
                         audio_file=file_path
                     )
