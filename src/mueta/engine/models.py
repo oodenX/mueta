@@ -126,3 +126,10 @@ class ProcessResult(BaseModel):
     artist: str | None = None
     error: str | None = None
     metadata: AudioMetadata | None = None
+
+
+class SemanticResult(BaseModel):
+    # Result of semantic analysis (Genre/Mood).
+
+    genre: str | None = None
+    mood: str | None = None
