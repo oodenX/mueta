@@ -14,7 +14,7 @@
 - [ ] Task: Conductor - User Manual Verification 'Build Scripts and CI/CD' (Protocol in workflow.md)
 
 ## Phase 3: Tagging and Release
-- [ ] Task: Commit all changes and push to `develop`.
-- [ ] Task: Merge `develop` into `main` (if applicable) or prepare release branch.
-- [ ] Task: Create and push `v0.3.0` tag.
+- [x] Task: Commit all changes and push to `develop`. cb06430
+- [x] Task: Merge `develop` into `main` (if applicable) or prepare release branch. cb06430
+- [x] Task: Create and push `v0.3.0` tag. cb06430
 - [ ] Task: Conductor - User Manual Verification 'Tagging and Release' (Protocol in workflow.md)
