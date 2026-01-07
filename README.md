@@ -9,6 +9,7 @@
 > Mueta 使用以下数据源：
 > - **官方 API**: AcoustID, MusicBrainz, Genius (需要 API Key)
 > - **非官方 API**: NetEase Cloud Music (网易云音乐), QQ Music
+> - **AI 语义分析**: Essentia TensorFlow Models (用于流派 Genre 和情绪 Mood 的本地预测)
 >
 > ⚠️ **非官方 API 风险提示**：NetEase 和 QQ Music 的 API 为非官方逆向接口，可能存在以下风险：
 > - API 格式随时可能变更导致功能失效
@@ -16,6 +17,12 @@
 > - 不保证长期稳定性
 >
 > 建议优先使用官方 API 来源的数据。非官方来源仅作为补充。
+
+## ✨ v0.3.0 新特性
+- **AI 驱动的语义分析**: 使用 Essentia TensorFlow 模型本地预测音频的 **流派 (Genre)** 和 **情绪 (Mood)**。
+- **命令行增强**: 新增 `--semantic` (`-s`) 标志，支持在 `analyze` 和 `get-meta` 命令中启用 AI 分析。
+- **自动模型管理**: 首次运行时自动下载所需的预训练模型 (约 23MB)。
+- **扩展元数据支持**: 完整支持写入多个 Genre 和 Mood 标签到 ID3/Vorbis/MP4 标签中。
 
 ## 安装
 
@@ -86,6 +93,22 @@ mueta init
 ```
 然后会引导用户输入 **AcoustID API key** 等等信息。
 
+### AI 语义分析 (Genre/Mood) - v0.3.0 新功能
+
+![Mueta Semantic Demo](demo/semantic.gif)
+
+Mueta 现在可以使用本地的深度学习模型 (Essentia TensorFlow) 来预测音频的流派 (Genre) 和情绪 (Mood)。
+
+```bash
+# 分析并标记流派和情绪
+mueta analyze --semantic PATH
+
+# 在获取元数据时同时进行语义分析
+mueta get-meta --semantic FILES
+```
+
+> **注意**: 第一次运行此功能时，会自动下载所需的模型文件 (约 23MB) 到用户目录。
+
 ### 音频分析 (BPM/Key)
 
 ![Mueta Analyze Demo](demo/analyze.gif)
@@ -102,6 +125,7 @@ mueta analyze [OPTIONS] PATH
 **选项**:
 - `-r --recursive`: 递归处理子文件夹。
 - `-f --force`: 强制重新分析（即使已有 BPM/Key 标签）。
+- `-s --semantic`: 同时进行 AI 流派和情绪检测。
 
 ### 获取一个音频的所有元属性
 
@@ -135,6 +159,7 @@ mueta get-meta [OPTIONS] FILES
 - `-w --workers`: 并行数，默认为3，可以根据自己的需求调整，要求为整数。
 - `-i --interactive`: 交互式模式，当有多个匹配结果时手动选择（此模式下 workers 强制为 1）。
 - `-a --analyze`: 同时进行音频分析 (BPM/Key)。
+- `-s --semantic`: 同时进行 AI 流派和情绪检测。
 
 ![Mueta Interactive Demo](demo/interactive.gif)
 
@@ -154,6 +179,7 @@ mueta get-meta-from-folder [OPTIONS] FOLDER
 - `-w --workers`: 并行数，默认为3，可以根据自己的需求调整，要求为整数。
 - `-i --interactive`: 交互式模式，当有多个匹配结果时手动选择（此模式下 workers 强制为 1）。
 - `-a --analyze`: 同时进行音频分析 (BPM/Key)。
+- `-s --semantic`: 同时进行 AI 流派和情绪检测。
 
 ## 支持的格式
 - MP3

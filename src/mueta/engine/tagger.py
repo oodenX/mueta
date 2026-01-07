@@ -131,6 +131,9 @@ class TaggerService:
             year=get_int("date"),
             original_release_date=get_first("originaldate"),
             genre=get_first("genre"),
+            genres=get_list("genre"),
+            mood=get_first("mood"),
+            moods=get_list("mood"),
             # Credits
             composer=get_first("composer"),
             lyricist=get_first("lyricist"),
@@ -195,6 +198,7 @@ class TaggerService:
             "album": meta.album,
             "albumartist": meta.album_artist,
             "genre": meta.genre,
+            "mood": meta.mood,
             # Credits
             "composer": meta.composer,
             "lyricist": meta.lyricist,
@@ -282,6 +286,20 @@ class TaggerService:
         if meta.artists:
             try:
                 audio["artists"] = meta.artists
+            except (KeyError, ValueError):
+                pass
+
+        # Multiple genres
+        if meta.genres:
+            try:
+                audio["genre"] = meta.genres
+            except (KeyError, ValueError):
+                pass
+
+        # Multiple moods
+        if meta.moods:
+            try:
+                audio["mood"] = meta.moods
             except (KeyError, ValueError):
                 pass
 

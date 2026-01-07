@@ -12,7 +12,7 @@ from typing_extensions import Annotated
 
 from mueta.cli.completion import Completer
 
-__version__ = "0.1.0"
+__version__ = "0.3.0"
 
 
 def version_callback(value: bool):
@@ -317,6 +317,9 @@ def view_meta(
         ("original_year", "Original Year"),
         ("original_release_date", "Original Release Date"),
         ("genre", "Genre"),
+        ("genres", "Genres"),
+        ("mood", "Mood"),
+        ("moods", "Moods"),
         # Credits
         ("composer", "Composer"),
         ("lyricist", "Lyricist"),
@@ -383,17 +386,23 @@ def analyze(
         bool,
         typer.Option("--force", "-f", help="Force re-analysis even if tags exist"),
     ] = False,
+    semantic: Annotated[
+        bool,
+        typer.Option("--semantic", "-s", help="Include AI-powered genre and mood detection"),
+    ] = True,
 ):
     """
-    Analyze audio files for BPM, Key, and other features.
+    Analyze audio files for BPM, Key, and AI-powered Genre/Mood.
     """
     from mueta.engine.analysis import AudioAnalyzer
     from mueta.engine.tagger import TaggerService
+    from mueta.engine.semantic import SemanticAnalyzer
 
     console.print(f"[bold cyan]Analyzing audio in:[/bold cyan] {path}")
 
     tagger = TaggerService()
     analyzer = AudioAnalyzer()
+    semantic_analyzer = SemanticAnalyzer()
 
     files_to_process = []
     if path.is_file():
@@ -427,10 +436,27 @@ def analyze(
                         skipped_count += 1
                         continue
 
-                # Analyze
+                # Analyze acoustic features
                 analysis_meta = analyzer.analyze(file_path)
 
-                if not analysis_meta.bpm and not analysis_meta.key:
+                # Analyze semantic features (Genre/Mood)
+                if semantic:
+                    status.update(f"AI detecting genre/mood for {file_path.name}...")
+                    # We need artist/title for Last.fm fallback, but ML only needs file
+                    current_tags = tagger.read_metadata(file_path)
+                    semantic_data = semantic_analyzer.analyze(
+                        current_tags.artist or "",
+                        current_tags.title or file_path.stem,
+                        audio_file=file_path
+                    )
+                    if semantic_data["genres"]:
+                        analysis_meta.genres = semantic_data["genres"]
+                        analysis_meta.genre = semantic_data["genres"][0]
+                    if semantic_data["moods"]:
+                        analysis_meta.moods = semantic_data["moods"]
+                        analysis_meta.mood = semantic_data["moods"][0]
+
+                if not analysis_meta.bpm and not analysis_meta.key and not analysis_meta.genres:
                     console.print(
                         f"[yellow]No features extracted for {file_path.name}[/yellow]"
                     )
@@ -442,7 +468,8 @@ def analyze(
 
                 console.print(
                     f"[green]Analyzed {file_path.name}:[/green] "
-                    f"BPM={analysis_meta.bpm}, Key={analysis_meta.key} {analysis_meta.scale or ''}"
+                    f"BPM={analysis_meta.bpm}, Key={analysis_meta.key} {analysis_meta.scale or ''} "
+                    f"Genre={analysis_meta.genre or 'N/A'}"
                 )
                 processed_count += 1
 
@@ -508,6 +535,14 @@ def get_meta(
             help="Analyze audio features (BPM, Key, etc.)",
         ),
     ] = False,
+    semantic: Annotated[
+        bool,
+        typer.Option(
+            "--semantic",
+            "-S",
+            help="Include AI-powered genre and mood detection",
+        ),
+    ] = True,
 ):
     """Get metadata for one or multiple audio files with optional lyrics."""
     from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -539,6 +574,7 @@ def get_meta(
         reserve_original=reserve,
         interactive=interactive,
         analyze=analyze,
+        get_genre=semantic,
     )
 
     # Filter out non-existent files
@@ -722,6 +758,14 @@ def get_meta_from_folder(
             help="Analyze audio features (BPM, Key, etc.)",
         ),
     ] = False,
+    semantic: Annotated[
+        bool,
+        typer.Option(
+            "--semantic",
+            "-S",
+            help="Include AI-powered genre and mood detection",
+        ),
+    ] = True,
 ):
     """Get metadata for all audio files in a folder with optional lyrics."""
     folder_path = Path(folder)
@@ -755,4 +799,5 @@ def get_meta_from_folder(
         interactive=interactive,
         skip_existing=skip_existing,
         analyze=analyze,
+        semantic=semantic,
     )

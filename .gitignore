@@ -6,12 +6,16 @@ resource/
 dist/
 data/
 .vscode/
+.zed/
 .idea/
 logs/
 test_audio/
 
 # Documentation and demo source files (keep only GIFs)
 docs/
+conductor/
+tests/
+.github/prompts/
 demo/*.tape
 *.egg-info/
 *.pyc
@@ -21,3 +25,6 @@ coverage.xml
 htmlcov/
 .tox/
 test_output/
+
+.gemini/
+gha-creds-*.json

@@ -1,11 +1,11 @@
 # src/mueta/engine/models.py
-"""Data models for mueta engine."""
+# Data models for mueta engine.
 
 from pydantic import BaseModel
 
 
 class AudioMetadata(BaseModel):
-    """Unified audio metadata model - Extended like Picard."""
+    # Unified audio metadata model - Extended like Picard.
 
     # Basic info
     title: str | None = None
@@ -32,6 +32,9 @@ class AudioMetadata(BaseModel):
 
     # Classification
     genre: str | None = None
+    genres: list[str] | None = None # Multiple genres
+    mood: str | None = None
+    moods: list[str] | None = None # Multiple moods
 
     # Credits
     composer: str | None = None
@@ -86,7 +89,7 @@ class AudioMetadata(BaseModel):
 
 
 class LyricsResult(BaseModel):
-    """Lyrics search result from LRCLIB."""
+    # Lyrics search result from LRCLIB.
 
     id: int
     track_name: str
@@ -99,12 +102,13 @@ class LyricsResult(BaseModel):
 
 
 class ProcessOptions(BaseModel):
-    """Options for processing audio files."""
+    # Options for processing audio files.
 
     download_lyrics: bool = False
     embed_lyrics: bool = False
     embed_cover: bool = True
     analyze: bool = False  # If True, perform audio analysis (BPM, Key, etc.)
+    get_genre: bool = False # If True, fetch genre/mood from Last.fm
     reserve_original: bool = (
         False  # If True, keep original file and copy; if False, move file
     )
@@ -114,7 +118,7 @@ class ProcessOptions(BaseModel):
 
 
 class ProcessResult(BaseModel):
-    """Result of processing a single audio file."""
+    # Result of processing a single audio file.
 
     success: bool
     file_path: str
@@ -122,3 +126,10 @@ class ProcessResult(BaseModel):
     artist: str | None = None
     error: str | None = None
     metadata: AudioMetadata | None = None
+
+
+class SemanticResult(BaseModel):
+    # Result of semantic analysis (Genre/Mood).
+
+    genre: str | None = None
+    mood: str | None = None

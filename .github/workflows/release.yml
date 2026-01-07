@@ -23,60 +23,24 @@ jobs:
           python-version: "3.12"
 
       - name: Get Version
-        id: get_version
+        shell: bash
         run: |
           if [[ $GITHUB_REF == refs/tags/* ]]; then
             echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
           else
-            echo "VERSION=0.1.0-dev.${GITHUB_RUN_NUMBER}" >> $GITHUB_ENV
+            echo "VERSION=0.3.0-dev.${GITHUB_RUN_NUMBER}" >> $GITHUB_ENV
           fi
 
-      - name: Install dependencies
-        run: |
-          pip install pyinstaller
-          pip install .
-          pip list
-
-      - name: Build with PyInstaller
-        run: |
-          pyinstaller mueta.spec
-
-      - name: Install fpm
+      - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y ruby ruby-dev rubygems build-essential
+          sudo apt-get install -y ruby ruby-dev rubygems build-essential libchromaprint-tools
           sudo gem install --no-document fpm
 
-      - name: Create packages
+      - name: Run Build Script
         run: |
-          mkdir -p release
-
-          # Create tar.gz
-          tar -czvf release/mueta-${VERSION}-linux-x86_64.tar.gz -C dist mueta
-
-          # Create DEB package
-          fpm -s dir -t deb \
-            -n mueta \
-            -v ${VERSION} \
-            --description "Music metadata fetcher CLI" \
-            --url "https://github.com/oodenX/mueta" \
-            --maintainer "oodenX <ven3428set@163.com>" \
-            --license "MIT" \
-            --depends "libchromaprint-tools" \
-            -p release/mueta_${VERSION}_amd64.deb \
-            dist/mueta=/usr/local/bin/mueta
-
-          # Create RPM package
-          fpm -s dir -t rpm \
-            -n mueta \
-            -v ${VERSION} \
-            --description "Music metadata fetcher CLI" \
-            --url "https://github.com/oodenX/mueta" \
-            --maintainer "oodenX <ven3428set@163.com>" \
-            --license "MIT" \
-            --depends "chromaprint-tools" \
-            -p release/mueta-${VERSION}-1.x86_64.rpm \
-            dist/mueta=/usr/local/bin/mueta
+          chmod +x scripts/build/build_linux.sh
+          ./scripts/build/build_linux.sh ${VERSION}
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -100,30 +64,13 @@ jobs:
           if [[ $GITHUB_REF == refs/tags/* ]]; then
             echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
           else
-            echo "VERSION=0.1.0-dev.${GITHUB_RUN_NUMBER}" >> $GITHUB_ENV
+            echo "VERSION=0.3.0-dev.${GITHUB_RUN_NUMBER}" >> $GITHUB_ENV
           fi
 
-      - name: Install dependencies
-        run: |
-          pip install pyinstaller
-          pip install .
-          pip list
-
-      - name: Build with PyInstaller
-        run: |
-          pyinstaller mueta.spec
-
-      - name: Create packages
+      - name: Run Build Script
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force -Path release
-          $version = $env:VERSION
-
-          # Create ZIP
-          Compress-Archive -Path dist\mueta.exe -DestinationPath release\mueta-$version-windows-x86_64.zip
-
-          # Copy EXE for direct upload
-          Copy-Item dist\mueta.exe -Destination release\mueta.exe
+          .\scripts\build\build_windows.ps1 -Version $env:VERSION
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -131,95 +78,30 @@ jobs:
           name: windows-packages
           path: release/*
 
-  build-macos:
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Get Version
-        run: |
-          if [[ $GITHUB_REF == refs/tags/* ]]; then
-            echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
-          else
-            echo "VERSION=0.1.0-dev.${GITHUB_RUN_NUMBER}" >> $GITHUB_ENV
-          fi
-
-      - name: Install dependencies
-        run: |
-          pip install pyinstaller
-          pip install .
-          pip list
-          brew install create-dmg
-
-      - name: Build with PyInstaller
-        run: |
-          pyinstaller mueta.spec
-
-      - name: Create DMG
-        run: |
-          mkdir -p release
-
-          # Create app bundle
-          mkdir -p "dist/Mueta.app/Contents/MacOS"
-          cp dist/mueta "dist/Mueta.app/Contents/MacOS/"
-
-          cat > "dist/Mueta.app/Contents/Info.plist" << XML
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-              <key>CFBundleExecutable</key>
-              <string>mueta</string>
-              <key>CFBundleIdentifier</key>
-              <string>com.oodenx.mueta</string>
-              <key>CFBundleName</key>
-              <string>Mueta</string>
-              <key>CFBundleVersion</key>
-              <string>${VERSION}</string>
-          </dict>
-          </plist>
-          XML
-
-          # Create DMG
-          create-dmg \
-            --volname "Mueta" \
-            --window-pos 200 120 \
-            --window-size 600 300 \
-            --icon-size 100 \
-            --hide-extension "Mueta.app" \
-            "release/Mueta-${VERSION}-macos.dmg" \
-            "dist/Mueta.app" || true
-
-          # Fallback: create tar.gz if DMG fails
-          if [ ! -f "release/Mueta-${VERSION}-macos.dmg" ]; then
-            tar -czvf release/mueta-${VERSION}-macos-x86_64.tar.gz -C dist mueta
-          fi
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: macos-packages
-          path: release/*
-
   create-release:
-    needs: [build-linux, build-windows, build-macos]
+    needs: [build-linux, build-windows]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
     steps:
+      - uses: actions/checkout@v4
+
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
           path: packages
 
+      - name: Archive Build Scripts
+        run: |
+          mkdir -p release_scripts
+          cp -r scripts/build/* release_scripts/
+          tar -czvf build_scripts.tar.gz release_scripts/
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          files: packages/**/*
+          files: |
+            packages/**/*
+            build_scripts.tar.gz
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

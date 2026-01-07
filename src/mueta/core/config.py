@@ -3,14 +3,33 @@ from tomllib import loads
 from pathlib import Path
 from pydantic_settings import BaseSettings
 import platformdirs
+import os
+
+class LastFmSettings(BaseSettings):
+    api_key: str = ""
+    api_secret: str = ""
+    enable: bool = False
+    cache_ttl: int = 604800
+
+class MLSettings(BaseSettings):
+    """Machine Learning model settings."""
+    enable: bool = True  # Enable ML-based genre/mood prediction as fallback
+    model_dir: str = ""  # Custom model directory (default: ~/.mueta/models/)
+    genre_threshold: float = 0.1  # Minimum probability threshold for genre prediction
+    mood_threshold: float = 0.3  # Minimum probability threshold for mood prediction
+    max_genres: int = 5  # Maximum number of genres to return
+    max_moods: int = 3  # Maximum number of moods to return
 
 class Settings(BaseSettings):
     app_name: str = "Mueta"
     debug: bool = False
-    audio_save_dir : str
-    lyrics_save_dir : str
-    acoustid_api_key: str
+    audio_save_dir : str = str(Path.home() / ".mueta" / "audio")
+    lyrics_save_dir : str = str(Path.home() / ".mueta" / "lyrics")
+    acoustid_api_key: str = ""
     genius_api_key: str | None = None
+
+    lastfm: LastFmSettings = LastFmSettings()
+    ml: MLSettings = MLSettings()
 
     # Retry configuration
     max_retries: int = 3
@@ -22,6 +41,13 @@ class Settings(BaseSettings):
 
     @staticmethod
     def _get_config_path() -> Path:
+        # Check environment variable first
+        env_config = os.environ.get("MUETA_CONFIG_PATH")
+        if env_config:
+            path = Path(env_config)
+            if path.exists():
+                return path
+
         dev_config = Path(__file__).resolve().parents[3] / "config.toml"
         if dev_config.exists():
             return dev_config
@@ -32,7 +58,7 @@ class Settings(BaseSettings):
 
     @staticmethod
     def _expand_path(path_str: str) -> str:
-        """Expand ~ and environment variables in path."""
+        # Expand ~ and environment variables in path.
         return str(Path(path_str).expanduser().resolve())
 
     @classmethod
@@ -53,6 +79,18 @@ class Settings(BaseSettings):
                     settings_dict.update(config_data["retry"])
                 if "processing" in config_data:
                     settings_dict.update(config_data["processing"])
+
+                # Handle Last.fm nested config
+                if "lastfm" in config_data:
+                    settings_dict["lastfm"] = LastFmSettings(**config_data["lastfm"])
+
+                # Handle ML nested config
+                if "ml" in config_data:
+                    ml_config = config_data["ml"].copy()
+                    # Expand model_dir path if specified
+                    if "model_dir" in ml_config and ml_config["model_dir"]:
+                        ml_config["model_dir"] = cls._expand_path(ml_config["model_dir"])
+                    settings_dict["ml"] = MLSettings(**ml_config)
 
                 # Expand paths with ~ to absolute paths
                 if "audio_save_dir" in settings_dict:
