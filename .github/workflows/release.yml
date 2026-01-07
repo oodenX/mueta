@@ -102,7 +102,8 @@ jobs:
 
       - name: Install system dependencies
         run: |
-          brew install create-dmg
+          # No system dependencies needed for tarball build
+          echo "Ready to build"
 
       - name: Run Build Script
         run: |
