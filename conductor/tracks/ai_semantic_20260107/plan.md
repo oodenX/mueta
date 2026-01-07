@@ -6,9 +6,9 @@
 - [ ] Task: Conductor - User Manual Verification 'Infrastructure and Configuration' (Protocol in workflow.md)
 
 ## Phase 2: ML Engine Refinement
-- [ ] Task: Ensure `src/mueta/engine/ml/models.py` correctly handles all required models (Discogs-Effnet, Genre-Discogs400, MTG-Jamendo).
-- [ ] Task: Verify `src/mueta/engine/ml/predictor.py` provides high-level `predict_all` functionality.
-- [ ] Task: Implement unit tests for `MLPredictor`.
+- [x] Task: Ensure `src/mueta/engine/ml/models.py` correctly handles all required models (Discogs-Effnet, Genre-Discogs400, MTG-Jamendo). 97bb44d
+- [x] Task: Verify `src/mueta/engine/ml/predictor.py` provides high-level `predict_all` functionality. 97bb44d
+- [x] Task: Implement unit tests for `MLPredictor`. 97bb44d
 - [ ] Task: Conductor - User Manual Verification 'ML Engine Refinement' (Protocol in workflow.md)
 
 ## Phase 3: Pipeline and CLI Integration
