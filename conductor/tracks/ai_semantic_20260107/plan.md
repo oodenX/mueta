@@ -1,7 +1,7 @@
 # Plan: Implement AI-Powered Genre and Mood Detection (v0.3.0)
 
 ## Phase 1: Infrastructure and Configuration
-- [ ] Task: Define Pydantic models for semantic results (Genre, Mood) in `src/mueta/engine/models.py`.
+- [x] Task: Define Pydantic models for semantic results (Genre, Mood) in `src/mueta/engine/models.py`. 2ca0041
 - [ ] Task: Update `src/mueta/core/config.py` to include LLM provider settings (API Key, Model, Provider).
 - [ ] Task: Conductor - User Manual Verification 'Infrastructure and Configuration' (Protocol in workflow.md)
 
