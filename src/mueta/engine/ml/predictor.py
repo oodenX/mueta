@@ -5,6 +5,7 @@ import logging
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
+from mueta.core.config import settings
 from mueta.engine.ml.models import (
     ModelManager,
     DISCOGS400_GENRE_MAPPING,
@@ -16,6 +17,14 @@ logger = logging.getLogger(__name__)
 # Check for Essentia TensorFlow support
 try:
     import essentia.standard as es
+    
+    # Configure Essentia logging based on debug setting
+    if hasattr(es, 'log'):
+        # Suppress Essentia logs unless in debug mode
+        log_active = settings.debug
+        es.log.infoActive = log_active
+        es.log.warningActive = log_active
+        
     from essentia.standard import (
         MonoLoader,
         TensorflowPredictEffnetDiscogs,
