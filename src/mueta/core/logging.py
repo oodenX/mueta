@@ -1,5 +1,6 @@
 # src/mueta/core/logging.py
 import sys
+import os
 from pathlib import Path
 from loguru import logger
 
@@ -9,6 +10,9 @@ LOG_DIR.mkdir(parents=True, exist_ok=True)
 LOG_FILE_PATH = LOG_DIR / "app_{time:YYYY-MM-DD}.log"
 
 def setup_logging(debug: bool = False):
+    # Suppress TensorFlow logs (must be set before TF is loaded)
+    os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+
     logger.remove()
 
     # Output to the terminal only in debug mode
