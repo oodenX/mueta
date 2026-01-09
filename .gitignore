@@ -28,3 +28,4 @@ test_output/
 
 .gemini/
 gha-creds-*.json
+scripts/run_full_tests.py

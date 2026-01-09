@@ -12,7 +12,7 @@ from typing_extensions import Annotated
 
 from mueta.cli.completion import Completer
 
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 
 
 def version_callback(value: bool):
@@ -523,7 +523,7 @@ def get_meta(
         bool,
         typer.Option(
             "--skip-existing",
-            "-s",
+            "-S",
             help="Skip files that already have complete metadata",
         ),
     ] = False,
@@ -539,7 +539,7 @@ def get_meta(
         bool,
         typer.Option(
             "--semantic",
-            "-S",
+            "-s",
             help="Include AI-powered genre and mood detection",
         ),
     ] = True,
@@ -746,7 +746,7 @@ def get_meta_from_folder(
         bool,
         typer.Option(
             "--skip-existing",
-            "-s",
+            "-S",
             help="Skip files that already have complete metadata",
         ),
     ] = False,
@@ -762,7 +762,7 @@ def get_meta_from_folder(
         bool,
         typer.Option(
             "--semantic",
-            "-S",
+            "-s",
             help="Include AI-powered genre and mood detection",
         ),
     ] = True,
