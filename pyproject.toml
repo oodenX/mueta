@@ -1,6 +1,6 @@
 [project]
 name = "mueta"
-version = "0.3.0"
+version = "0.3.1"
 description = "Mueta —— Music meta auto to get"
 readme = "README.md"
 requires-python = ">=3.12"
